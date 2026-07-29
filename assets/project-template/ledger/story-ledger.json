@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "project_title": "{{TITLE_JSON}}",
+  "updated": "{{DATE}}",
+  "scene_summaries": [],
+  "state_changes": [],
+  "knowledge_changes": [],
+  "relationship_changes": [],
+  "object_changes": [],
+  "clue_changes": [],
+  "thread_changes": [],
+  "audience_evidence": [],
+  "open_questions": [],
+  "uncertainties": []
+}

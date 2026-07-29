@@ -1,0 +1,4 @@
+interface:
+  display_name: "中文长剧本创作"
+  short_description: "从人物小传、故事背景和世界观生成中文电影或剧集正文，并执行连续性与质量自审"
+  default_prompt: "使用 $write-chinese-long-screenplay 根据人物小传、故事背景和世界观创作中文电影剧本，并完成自我审查。"
