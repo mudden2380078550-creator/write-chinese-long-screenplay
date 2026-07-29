@@ -165,4 +165,6 @@ write-chinese-long-screenplay/
 
 ## License
 
-No open-source license is currently provided. Public access to the repository does not automatically grant permission to copy, modify, or redistribute its contents.
+Copyright © 2026 kobayashikayoubi.
+
+This project is licensed under the [GNU General Public License v3.0 only](LICENSE). You may use, modify, and redistribute it, provided that distributed modifications and derivative works comply with GPL-3.0 source-availability, notice-preservation, and compatible-licensing requirements.
