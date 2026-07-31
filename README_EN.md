@@ -1,135 +1,170 @@
-# Chinese Long-Form Screenwriting Skill
+# Chinese Long-Form Screenwriting Skill v2
 
 [中文说明](README.md)
 
-A Codex skill for writing long-form Chinese-language feature films and episodic screenplays. It turns character biographies, story background, worldbuilding, themes, and plot material into a maintainable Markdown screenplay project, with workflows for drafting scenes, tracking continuity, self-review, validation, and compilation.
+A Codex skill for writing Chinese-language feature films and episodic screenplays. The streamlined version has only two author-facing inputs: background setting and character setting, including biographies. Story architecture, scene causality, continuity, and dialogue checks are handled internally.
 
-## Key capabilities
+## Two author-facing blocks
 
-- **Feature-film workflow**: Move from characters, background, and world rules through synopsis, treatment, sequence outline, scene outline, and screenplay pages.
-- **Multiple long-form formats**: Support feature films, episodic series, short-form drama series, and animation.
-- **Character-driven writing**: Convert exposition into immediate pressure, character strategy, visible action, playable dialogue, and audiovisual consequences.
-- **Source traceability**: Record the character, background, world, and outline files actually used by each scene.
-- **Continuity ledger**: Track character knowledge, relationships, objects, clues, audience evidence, and unresolved questions separately.
-- **Bounded context**: Build compact scene, sequence, or review context instead of loading the entire project.
-- **Two-layer review**: Use deterministic scripts for structural checks and a model or editor for causality, character, audience comprehension, cinematic quality, and pacing.
-- **Safe writes**: Refuse to overwrite existing scenes by default and provide `--dry-run` previews.
-- **Validation and compilation**: Check project structure, scene numbering, and references before compiling the screenplay in order.
+### 1. Background setting
 
-## Scope and limitations
+Record the time, place, institutions, historical consequences, world rules, resources, limits, costs, knowledge differences, and fixed facts that change character choices or create visible consequences.
 
-This repository is not a standalone language model or a one-click film production application. Writing quality still depends on the selected model, the source material, and editorial judgment.
+File: `background/story-background.md`
 
-The scripts focus on deterministic issues such as structure, numbering, paths, missing fields, and checkable continuity. They cannot replace semantic judgment about character arcs, subtext, emotional truth, or artistic quality. Final Draft, PDF, and production-format exports are not currently included.
+### 2. Character setting
 
-## Supported project types
+Record each character's biography, objective, need, false belief, defense strategy, resources, limits, secrets, knowledge boundary, relationship exchanges, pressure behavior, speech habits, and final choice.
 
-| `format` | Use case | Scene naming |
-| --- | --- | --- |
-| `feature` | Feature film | `S001.md` |
-| `series` | Episodic series | `E001-S001.md` |
-| `short-drama` | Short-form drama series | `E001-S001.md` |
-| `animation` | Animated series | `E001-S001.md` |
+Files: `bible/characters/*.md`
 
-## Requirements
+The feature/series bible, structure map, sequences, scene cards, ledger, and reports remain available as internal working artifacts. They are not additional author-facing theory blocks.
+
+## Chinese AI-style and calibration
+
+The current version uses only the 24 Chinese problem categories publicly listed by [Humanizer-zh](https://github.com/op7418/Humanizer-zh), rephrased as a screenplay review checklist. It does not import that project's rewrite prompts, detector, score, voice templates, or code. Automated checks only flag high-confidence signals; detector scores are not a writing target.
+
+The most useful feedback is a rewrite pair, not “make it natural”:
+
+```text
+Original:
+Why it feels unnatural: too complete, too explanatory, wrong for the character, or wrong for the relationship?
+Rewrite:
+Effect to preserve:
+```
+
+Put 5–20 pairs in the “real Chinese samples” section of `style/screenplay-style.md`. They calibrate the current project but do not permanently train the base model; permanent changes require a separate dataset and fine-tuning process. Use samples for syntax, rhythm, and character distinction, not for copying copyrighted passages.
+
+## Internal writing engine
+
+Unified feature engine:
+
+```text
+thematic proposition → protagonist desire → inciting disruption
+→ progressive complications → point of no return → crisis choice
+→ climactic action → ending value and aftermath
+```
+
+Scene engine:
+
+```text
+source → viewpoint/objective → conflict/tactic → expected result
+→ actual result → result gap → turn → value change → next pressure
+```
+
+Author theories remain internal diagnostic material. Users do not need to select adapters, fill a fifteen-beat sheet, or place scenes by percentage. The core judgment is always character choice, resistance, cost, and change under setting constraints.
+
+Chinese pages receive a local de-templating review for exposition, abstract psychology, identical voices, overly polished syntax, and slogan-like endings. Unflagged lines are not rewritten merely to create variation. See `references/natural-chinese.md`.
+
+## Requirements and installation
 
 - A Codex environment with `SKILL.md` support
-- Python 3.10 or later
-- Git when installing by cloning the repository
+- Python 3.10+
+- Git when installing by clone
 
-The bundled scripts use only the Python standard library.
+The scripts use only the Python standard library.
 
-## Installation
-
-### Windows PowerShell
+Windows PowerShell:
 
 ```powershell
 git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git `
   "$HOME\.codex\skills\write-chinese-long-screenplay"
 ```
 
-### macOS / Linux
+macOS / Linux:
 
 ```bash
 git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git \
   "$HOME/.codex/skills/write-chinese-long-screenplay"
 ```
 
-Start a new Codex task after installation. If the skill does not appear in the available skill list, restart Codex.
-
-## Quick start
-
-Ask Codex:
-
-```text
-Use $write-chinese-long-screenplay to turn these character biographies,
-story background, and world rules into a 100-minute Chinese mystery feature.
-Create the synopsis, sequence outline, first three scenes, and a self-review.
-```
-
-Or initialize an empty feature-film project:
+## Initialize a v2 project
 
 ```powershell
-python "$HOME\.codex\skills\write-chinese-long-screenplay\scripts\init_project.py" `
+python "<skill-dir>\scripts\init_project.py" `
   --project-root "D:\screenplays\my-feature" `
   --title "Working Title" `
   --format feature
 ```
 
-Initialization refuses to overwrite a non-empty directory.
+After initialization, fill only the background and character blocks. Author-theory adapters remain a compatibility layer and are disabled by default.
 
-## Recommended workflow
+Every project declares:
 
-1. Establish character biographies, story background, and world rules.
-2. Define the theme, central conflict, ending direction, and locked constraints.
-3. Create the synopsis and treatment.
-4. Break the story into acts, sequences, episodes, and scene outlines.
-5. Build bounded context for the target scene.
-6. Draft and review the scene.
-7. Update the continuity ledger.
-8. Run self-review, structural validation, and compilation.
-9. Revise from the root-cause scene and regression-check affected scenes.
+```yaml
+schema_version: 2
+story_engine: causal-value
+structure_adapters: []
+```
 
-A character may only act on information they possess at that point in the story. Author truth, character knowledge, and audience evidence should remain separate.
+## Migrate v1
 
-## Common commands
+Preview first:
 
-The examples below use `<skill-dir>` for this repository or its installation directory and `<project-root>` for the screenplay project.
+```powershell
+python "<skill-dir>\scripts\migrate_project.py" `
+  --project-root "<project-root>" `
+  --report "<project-root>\reviews\v2-migration.md"
+```
 
-### Build scene context
+Apply confirmed structural changes:
+
+```powershell
+python "<skill-dir>\scripts\migrate_project.py" `
+  --project-root "<project-root>" `
+  --apply
+```
+
+Changed files are backed up under the project's `backups/` directory, and the continuity ledger is upgraded to schema v2. The migration does not invent motivation, story values, conflict, or result gaps; unresolved creative fields remain strict-validation blockers.
+
+Exit code `0` means the applied project passes strict validation. Exit code `1` means the report or deterministic migration completed but blockers remain.
+
+## Context and review
+
+| Profile | Default budget |
+| --- | ---: |
+| `scene-light` | about 4,000 tokens |
+| `scene` | about 7,000 tokens |
+| `scene-complex` | about 12,000 tokens |
+| `batch` | about 16,000 tokens |
+| `sequence` | about 4,200 tokens |
+| `dialogue-review` | about 3,200 tokens |
+| `structure-review` | about 6,000 tokens |
+| `full-review` | about 8,000 tokens |
+
+`review` remains an alias for `full-review`.
 
 ```powershell
 python "<skill-dir>\scripts\build_context.py" `
   --project-root "<project-root>" `
   --scene 18 `
   --profile scene `
-  --query "character, location, clue, or rule" `
+  --query "character location clue rule" `
   --source-file "bible/characters/char-id.md" `
-  --source-file "background/story-background.md" `
   --output "<temp-dir>\scene-context.md"
-```
 
-Default context budgets are approximately:
+python "<skill-dir>\scripts\build_context.py" `
+  --project-root "<project-root>" `
+  --scene-from 18 `
+  --scene-to 23 `
+  --profile batch `
+  --query "batch characters locations clues rules sequence objective" `
+  --output "<temp-dir>\S018-S023-batch-context.md"
 
-- `scene`: 3,200 tokens
-- `sequence`: 5,000 tokens
-- `review`: 8,000 tokens
-
-Use `--max-tokens` to override the budget. New-scene drafting does not load future screenplay scenes by default.
-
-### Run self-review
-
-```powershell
 python "<skill-dir>\scripts\self_review.py" `
   --project-root "<project-root>" `
+  --focus dialogue `
   --strict `
-  --compact `
-  --output "<project-root>\reviews\self-review.md"
+  --output "<project-root>\reviews\dialogue-review.md"
 ```
 
-`--compact` omits repeated static review worksheets to reduce output size and token use.
+`--focus` accepts `scene`, `dialogue`, `structure`, `continuity`, or `full`.
 
-### Validate and compile
+Use `scene-light` for transitions and low-context scenes, `scene` as the standard drafting profile, and `scene-complex` for ensemble scenes, major reveals, and climaxes. `batch` builds shared context for 1–8 consecutive scenes only. After each scene, update the ledger and build the next scene's local context. At roughly 30-scene checkpoints, validate first and then review scene causality, dialogue, continuity, and structure in layers instead of loading every completed scene indiscriminately.
+
+Context generation refuses to overwrite an existing output by default. Add `--force` only when intentionally replacing a disposable context package.
+
+## Validate, compile, and test
 
 ```powershell
 python "<skill-dir>\scripts\validate_project.py" `
@@ -139,32 +174,20 @@ python "<skill-dir>\scripts\validate_project.py" `
 python "<skill-dir>\scripts\compile_screenplay.py" `
   --project-root "<project-root>" `
   --output "<project-root>\exports\screenplay.md"
+
+python -m unittest discover -s tests -v
 ```
 
-## Repository structure
+Compilation runs strict validation again and refuses to export a project with schema, source, or required scene-field errors.
 
-```text
-write-chinese-long-screenplay/
-├── SKILL.md                 # Core routing and workflow
-├── agents/openai.yaml       # Codex interface metadata
-├── assets/                  # Feature and episodic project templates
-├── references/              # Writing and review guidance loaded on demand
-└── scripts/                 # Initialization, context, writing, ledger, review, and build tools
-```
+Deterministic checks cannot replace editorial judgment about motivation, subtext, emotional effect, or climax quality.
 
-`SKILL.md` contains only the core workflow. Detailed guidance lives in `references/` and should be loaded only when relevant; do not load every reference file for each writing task.
+## Copyright and method sources
 
-## Reducing token use
-
-- Use the `scene` profile for individual scene drafting.
-- Pass only source files that the scene actually depends on.
-- Use a focused `--query` for characters, locations, clues, and rules.
-- Do not enable `--include-next-scene` when drafting a new scene.
-- Use `--compact` for routine reviews and expand the worksheet only when necessary.
-- Run deterministic checks before asking the model to perform semantic review.
+The conceptual mapping is informed by Syd Field's feature-screenplay methods, Robert McKee's story and dialogue methods, and Blake Snyder's feature-screenwriting methods. This repository contains original mappings, workflows, templates, and validation code; it does not distribute the books, extended quotations, or chapter summaries that substitute for the source works.
 
 ## License
 
 Copyright © 2026 kobayashikayoubi.
 
-This project is licensed under the [GNU General Public License v3.0 only](LICENSE). You may use, modify, and redistribute it, provided that distributed modifications and derivative works comply with GPL-3.0 source-availability, notice-preservation, and compatible-licensing requirements.
+Licensed under [GNU General Public License v3.0 only](LICENSE).

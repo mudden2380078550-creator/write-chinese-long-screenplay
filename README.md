@@ -1,134 +1,177 @@
-# 中文长剧本创作 Skill
+# 中文长剧本创作 Skill v2
 
 [English](README_EN.md)
 
-面向 Codex 的中文电影与剧集长剧本写作 Skill。它把人物小传、故事背景、世界观、主题和情节设定组织成可持续迭代的 Markdown 剧本工程，并辅助完成正文生成、连续性维护、自我审查、结构校验和编译。
+面向 Codex 的中文电影与剧集长剧本写作 Skill。新版只要求两个创作输入：背景设定、人物设定（含人物小传）。其余故事骨架、场景因果、连续性和对白检查由 Skill 内部完成。
 
-## 主要能力
+## 只保留两个创作板块
 
-- **电影剧本路径**：从人物、背景和世界规则开始，逐步生成梗概、处理稿、序列大纲、逐场大纲和场次正文。
-- **多种长剧本格式**：支持电影、常规剧集、短剧和动画项目。
-- **人物驱动写作**：将设定转化为当前压力、人物策略、可见行动、对白行为和视听后果。
-- **来源追溯**：每场记录真正依赖的人物、背景、世界和大纲文件，降低无来源设定混入正文的风险。
-- **连续性台账**：分别维护人物知识、关系、物件、线索、观众证据和未决问题。
-- **受限上下文**：按单场、序列或审查任务构建紧凑上下文，减少长项目中的 token 消耗。
-- **双层自审**：脚本检查高确定性结构问题，模型或编辑完成因果、人物、观众盲读、电影性和节奏审查。
-- **安全写入**：默认拒绝覆盖已存在场次，并支持 `--dry-run` 预览。
-- **校验与编译**：检查工程结构、场次编号和引用，再按顺序编译完整 Markdown 剧本。
+### 1. 背景设定
 
-## 能力边界
+填写时代、地点、制度、历史余波、世界规则、资源、限制、代价、认知差异和不可改变的事实。每条设定都要能改变人物选择或产生可见后果。
 
-本项目不是独立的大语言模型，也不是“一键生成成片”的应用。实际文本质量仍取决于所用模型、输入材料和人工判断。
+文件：`background/story-background.md`
 
-自动脚本主要处理结构、编号、路径、缺失字段和可确定的连续性问题，不能代替对人物弧光、潜台词、情感真实性或艺术表达的语义判断。目前不直接导出 Final Draft、PDF 或制片排版格式。
+### 2. 人物设定
 
-## 支持的项目类型
+填写人物小传、欲望、需要、错误信念、保护策略、资源、限制、秘密、知识边界、关系交换、压力下的行为、语言习惯和最终选择。
 
-| `format` | 用途 | 场次编号 |
-| --- | --- | --- |
-| `feature` | 电影 | `S001.md` |
-| `series` | 常规剧集 | `E001-S001.md` |
-| `short-drama` | 短剧 | `E001-S001.md` |
-| `animation` | 动画剧集 | `E001-S001.md` |
+文件：`bible/characters/*.md`
 
-## 环境要求
+电影圣经、结构图、序列、场次卡、台账和审查报告仍会生成，但它们是内部工作资料，不是要求用户学习的第三、第四、第五个创作板块。
+
+## 中文 AI 味与校准
+
+当前版本把“去 AI 味”作为独立检查：只借用 [Humanizer-zh](https://github.com/op7418/Humanizer-zh) 公开的中文问题分类，并改写为剧本场景清单。它不引入对方的改写提示词、检测器、分数、声音模板或代码；自动脚本只提示高确定性模式，不把检测分数当作目标。
+
+清单覆盖四组共 24 类问题：内容拔高与广告腔、AI 高频语言与假对称、格式装饰泄漏、协作元话语与空泛结论。剧本还会区分动作描写、对白和格式，避免把正常的重复、破折号、引号或“是”误判为问题。完整清单见 `references/natural-chinese.md`。
+
+最有效的校准材料不是“自然一点”，而是用户自己的改写对照：
+
+```text
+原句：
+不自然的原因：是太完整、太解释、太像谁，还是不符合人物关系？
+改写：
+希望保留的效果：
+```
+
+将 5–20 组这样的对照放进 `style/screenplay-style.md` 的“真实中文样本”区。它会校准当前项目的语气，但不会永久训练基础模型；永久改变模型需要另行制作数据集和微调。真实片段只用于学习句法、节奏和人物差异，不要提交有版权的整段文本。
+
+## 内部写作内核
+
+统一内核：
+
+```text
+主题命题 → 主角欲望 → 激励性扰动 → 递进复杂化
+→ 不可回头点 → 危机选择 → 高潮行动 → 结局价值与余波
+```
+
+单场内核：
+
+```text
+来源 → 视点/目标 → 冲突/策略 → 预期结果 → 实际结果
+→ 结果落差 → 转折 → 价值变化 → 下场压力
+```
+
+作者理论只作为内部诊断资料，不要求用户选择适配器、填写十五节拍或用百分比安排场次。核心判断始终是人物在背景限制下的选择、反制、代价和变化。
+
+中文正文会额外执行局部去模板化审查，重点处理说明性对白、抽象心理、同声同气、过度工整和金句式收束；没有命中问题的句子不为追求变化而改写。详见 `references/natural-chinese.md`。
+
+## 要求
 
 - 支持 `SKILL.md` 的 Codex 环境
-- Python 3.10 或更高版本
-- Git（使用克隆安装时）
+- Python 3.10+
+- Git（克隆安装时）
 
-运行脚本只使用 Python 标准库，不需要安装额外 Python 依赖。
+脚本只使用 Python 标准库。
 
 ## 安装
 
-### Windows PowerShell
+Windows PowerShell：
 
 ```powershell
 git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git `
   "$HOME\.codex\skills\write-chinese-long-screenplay"
 ```
 
-### macOS / Linux
+macOS / Linux：
 
 ```bash
 git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git \
   "$HOME/.codex/skills/write-chinese-long-screenplay"
 ```
 
-安装后新建一个 Codex 任务。如果 Skill 没有出现在可用列表中，请重新启动 Codex。
+安装后新建 Codex 任务；若 skill 未出现，请重启 Codex。
 
-## 快速开始
-
-可以直接向 Codex 提出：
-
-```text
-使用 $write-chinese-long-screenplay，根据这些人物小传、故事背景和世界观，
-创建一部 100 分钟悬疑电影的梗概、序列大纲和前三场正文，并执行自我审查。
-```
-
-也可以先初始化一个空白电影工程：
+## 初始化 v2 项目
 
 ```powershell
-python "$HOME\.codex\skills\write-chinese-long-screenplay\scripts\init_project.py" `
+python "<skill-dir>\scripts\init_project.py" `
   --project-root "D:\screenplays\my-feature" `
   --title "片名" `
   --format feature
 ```
 
-初始化拒绝覆盖非空目录。
+初始化后只需填写背景设定和人物设定；作者理论适配器属于兼容层，默认不启用。
 
-## 推荐工作流
+项目契约：
 
-1. 建立人物小传、故事背景和世界规则。
-2. 明确主题、核心冲突、结局方向和不可改动项。
-3. 完成梗概与处理稿。
-4. 拆分幕、序列、分集和逐场大纲。
-5. 为目标场次构建受限上下文。
-6. 生成并审阅场次正文。
-7. 更新连续性台账。
-8. 运行自审、结构校验和编译。
-9. 从根因场开始修改，并回归检查受影响场次。
+```yaml
+schema_version: 2
+story_engine: causal-value
+structure_adapters: []
+```
 
-人物在正文中只能使用当时已经获得的信息。作者真相、人物认知和观众证据应分开维护。
+## 迁移旧项目
 
-## 常用命令
+先预览：
 
-以下示例用 `<skill-dir>` 表示本仓库或安装目录，用 `<project-root>` 表示剧本工程目录。
+```powershell
+python "<skill-dir>\scripts\migrate_project.py" `
+  --project-root "<project-root>" `
+  --report "<project-root>\reviews\v2-migration.md"
+```
 
-### 构建单场上下文
+确认后应用：
+
+```powershell
+python "<skill-dir>\scripts\migrate_project.py" `
+  --project-root "<project-root>" `
+  --apply
+```
+
+应用前会把改写文件备份到项目 `backups/`，并把连续性台账升级到 schema v2。人物动机、故事价值、冲突和结果落差不会被自动猜测，未解决字段会保持严格校验阻断。
+
+迁移退出码 `0` 表示应用后严格校验通过；`1` 表示报告已生成或迁移已应用，但仍有阻断项。
+
+## 上下文与自审
+
+上下文档位：
+
+| 档位 | 默认预算 |
+| --- | ---: |
+| `scene-light` | 约 4,000 tokens |
+| `scene` | 约 7,000 tokens |
+| `scene-complex` | 约 12,000 tokens |
+| `batch` | 约 16,000 tokens |
+| `sequence` | 约 4,200 tokens |
+| `dialogue-review` | 约 3,200 tokens |
+| `structure-review` | 约 6,000 tokens |
+| `full-review` | 约 8,000 tokens |
+
+`review` 保留为 `full-review` 的兼容别名。
 
 ```powershell
 python "<skill-dir>\scripts\build_context.py" `
   --project-root "<project-root>" `
   --scene 18 `
   --profile scene `
-  --query "人物、地点、线索或规则" `
+  --query "人物 地点 线索 规则" `
   --source-file "bible/characters/char-id.md" `
-  --source-file "background/story-background.md" `
   --output "<临时目录>\scene-context.md"
-```
 
-默认预算约为：
+python "<skill-dir>\scripts\build_context.py" `
+  --project-root "<project-root>" `
+  --scene-from 18 `
+  --scene-to 23 `
+  --profile batch `
+  --query "本批人物 地点 线索 规则 序列目标" `
+  --output "<临时目录>\S018-S023-batch-context.md"
 
-- `scene`：3,200 tokens
-- `sequence`：5,000 tokens
-- `review`：8,000 tokens
-
-可用 `--max-tokens` 覆盖预算。新写场景默认不读取未来正文。
-
-### 自我审查
-
-```powershell
 python "<skill-dir>\scripts\self_review.py" `
   --project-root "<project-root>" `
+  --focus dialogue `
   --strict `
-  --compact `
-  --output "<project-root>\reviews\self-review.md"
+  --output "<project-root>\reviews\dialogue-review.md"
 ```
 
-`--compact` 会省略重复的静态审查模板，以降低输出和 token 消耗。
+`--focus` 可取 `scene`、`dialogue`、`structure`、`continuity`、`full`。
 
-### 校验与编译
+`scene-light` 用于过场和低设定负荷场；`scene` 是普通正文默认档；`scene-complex` 用于群戏、重大揭示和高潮。`batch` 只构建连续 1–8 场的共享上下文；每写完一场仍需更新台账，再为下一场生成局部上下文。每约30场先做严格校验，再按场景、对白、连续性和结构分层审查，不把全部正文无差别塞入一次模型上下文。
+
+上下文输出默认拒绝覆盖已有文件；确认替换临时上下文时添加 `--force`。
+
+## 校验、编译和测试
 
 ```powershell
 python "<skill-dir>\scripts\validate_project.py" `
@@ -138,32 +181,20 @@ python "<skill-dir>\scripts\validate_project.py" `
 python "<skill-dir>\scripts\compile_screenplay.py" `
   --project-root "<project-root>" `
   --output "<project-root>\exports\screenplay.md"
+
+python -m unittest discover -s tests -v
 ```
 
-## 仓库结构
+编译器会再次执行严格校验；存在 schema、来源或必填场次问题时拒绝导出。
 
-```text
-write-chinese-long-screenplay/
-├── SKILL.md                 # Skill 的核心路由与工作流
-├── agents/openai.yaml       # Codex 界面元数据
-├── assets/                  # 电影与剧集工程模板
-├── references/              # 按需加载的写作与审查规范
-└── scripts/                 # 初始化、上下文、写入、台账、自审和编译工具
-```
+自动脚本只能判断确定性问题。人物动机、潜台词、情感效果和高潮质量仍须由模型或编辑结合正文审查。
 
-`SKILL.md` 只保留核心流程，详细规则放在 `references/` 中按任务加载。不要在一次写作任务中读取全部参考文件。
+## 版权与方法来源
 
-## 降低 token 消耗
-
-- 单场写作使用 `scene` 上下文档位。
-- 只传入本场确实依赖的 `--source-file`。
-- 使用具体的 `--query` 筛选人物、地点、线索和规则。
-- 新写正文时不要启用 `--include-next-scene`。
-- 常规审查使用 `--compact`，需要完整工作表时再关闭。
-- 先运行确定性脚本，再让模型处理真正需要语义判断的问题。
+v2 的概念映射参考了悉德·菲尔德的电影剧本结构方法、罗伯特·麦基的故事与对白方法，以及布莱克·斯奈德的电影编剧方法。仓库只包含原创的术语矩阵、工作流、模板和校验代码，不包含书籍文件、长篇原文或可替代原书的章节摘要。
 
 ## 许可证
 
 Copyright © 2026 kobayashikayoubi。
 
-本项目采用 [GNU General Public License v3.0 only](LICENSE) 授权。你可以使用、修改和再发布本项目，但发布修改版或衍生作品时必须按照 GPL-3.0 的要求提供相应源代码、保留许可证和版权声明，并以兼容的 GPL 条款授权。
+本项目采用 [GNU General Public License v3.0 only](LICENSE)。

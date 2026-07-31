@@ -1,6 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project_title": "{{TITLE_JSON}}",
+  "format": "{{FORMAT}}",
   "updated": "{{DATE}}",
   "scene_summaries": [],
   "state_changes": [],
@@ -9,6 +10,8 @@
   "object_changes": [],
   "clue_changes": [],
   "thread_changes": [],
+  "value_changes": [],
+  "decision_changes": [],
   "audience_evidence": [],
   "open_questions": [],
   "uncertainties": []
