@@ -9,6 +9,7 @@ from typing import Any
 
 from screenplay_io import (
     atomic_write_text,
+    project_contract,
     project_format,
     require_inside,
     scene_id_for,
@@ -18,7 +19,31 @@ from screenplay_io import (
 )
 
 
-COMMON_REQUIRED = ("scene", "title", "location", "time_of_day", "interior_exterior")
+COMMON_REQUIRED = (
+    "scene",
+    "title",
+    "location",
+    "time_of_day",
+    "interior_exterior",
+    "characters",
+    "source_files",
+    "source_character_facts",
+)
+REQUIRED_TEXT_FIELDS = (
+    "viewpoint_character",
+    "scene_objective",
+    "story_value",
+    "entry_value",
+    "primary_conflict",
+    "tactic",
+    "expected_result",
+    "actual_result",
+    "result_gap",
+    "turn",
+    "audience_update",
+    "exit_value",
+    "next_pressure",
+)
 STATUSES = {"outline", "draft", "revision", "final", "locked"}
 TIME_VALUES = {"日", "夜", "晨", "昏", "连续"}
 SPACE_VALUES = {"内", "外", "内外"}
@@ -34,13 +59,13 @@ LIST_FIELDS = (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="安全创建中文电影或剧集场次")
+    parser = argparse.ArgumentParser(description="安全创建 v2 中文电影或剧集场次")
     parser.add_argument("--project-root", required=True, type=Path)
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="完成全部校验并把待写内容输出到标准输出，不创建文件",
+        help="完成全部校验并输出待写内容，不创建文件",
     )
     return parser.parse_args()
 
@@ -54,6 +79,15 @@ def as_list(data: dict[str, Any], key: str) -> list[str]:
     return [str(item).strip() for item in value if str(item).strip()]
 
 
+def required_text(data: dict[str, Any], key: str) -> str:
+    value = str(data.get(key, "")).strip()
+    if not value:
+        raise ValueError(f"{key} 不能为空")
+    if any(marker in value for marker in ("【待补】", "TODO", "TBD", "{{")):
+        raise ValueError(f"{key} 仍是未解决占位内容")
+    return value
+
+
 def bullet_block(value: Any, empty: str = "-") -> str:
     if isinstance(value, list):
         return "\n".join(f"- {item}" for item in value) if value else empty
@@ -62,7 +96,7 @@ def bullet_block(value: Any, empty: str = "-") -> str:
 
 
 def card_list(values: list[str]) -> str:
-    return "；".join(values)
+    return "；".join(values) if values else "-"
 
 
 def validate_source_files(project_root: Path, source_files: list[str]) -> None:
@@ -87,6 +121,9 @@ def main() -> int:
             raise ValueError(f"缺少字段：{', '.join(missing)}")
 
         root = args.project_root.resolve()
+        _, contract_errors = project_contract(root)
+        if contract_errors:
+            raise ValueError("项目不是有效 v2：" + "；".join(contract_errors))
         format_name = project_format(root)
         is_feature = format_name == "feature"
         scene = strict_int(data["scene"], "scene", 1, 999)
@@ -95,11 +132,13 @@ def main() -> int:
             if "episode" not in data:
                 raise ValueError("剧集场次缺少 episode")
             episode = strict_int(data["episode"], "episode", 1, 999)
+        else:
+            missing_structure = [key for key in ("act", "sequence") if key not in data]
+            if missing_structure:
+                raise ValueError(f"电影场次缺少字段：{', '.join(missing_structure)}")
 
-        title = str(data["title"]).strip()
-        location = str(data["location"]).strip()
-        if not title or not location:
-            raise ValueError("title 与 location 不能为空")
+        title = required_text(data, "title")
+        location = required_text(data, "location")
         time_of_day = str(data["time_of_day"]).strip()
         interior_exterior = str(data["interior_exterior"]).strip()
         if time_of_day not in TIME_VALUES:
@@ -113,9 +152,21 @@ def main() -> int:
             raise ValueError(f"status 必须是：{', '.join(sorted(STATUSES))}")
 
         lists = {key: as_list(data, key) for key in LIST_FIELDS}
-        if is_feature and not lists["source_files"]:
-            raise ValueError("电影场次必须提供至少一个 source_files 来源")
+        if not lists["characters"]:
+            raise ValueError("characters 至少包含视点人物")
+        if not lists["source_files"]:
+            raise ValueError("v2 场次必须提供至少一个 source_files 来源")
+        if not lists["source_character_facts"]:
+            raise ValueError("v2 场次必须提供至少一条 source_character_facts")
         validate_source_files(root, lists["source_files"])
+
+        fields = {key: required_text(data, key) for key in REQUIRED_TEXT_FIELDS}
+        if fields["viewpoint_character"] not in lists["characters"]:
+            raise ValueError("viewpoint_character 必须出现在 characters 中")
+        if fields["entry_value"].casefold() == fields["exit_value"].casefold():
+            raise ValueError("entry_value 与 exit_value 必须发生实质变化")
+        if fields["expected_result"].casefold() == fields["actual_result"].casefold():
+            raise ValueError("expected_result 与 actual_result 不能相同")
 
         scene_id = scene_id_for(format_name, scene, episode)
         target = root / "screenplay" / "scenes" / f"{scene_id}.md"
@@ -130,11 +181,11 @@ def main() -> int:
         ).strip()
         draft = str(data.get("draft", "")).strip()
         if not draft:
-            draft = "△ 待写：用可见、可听、可表演的动作进入场面。"
+            draft = "△ 待写：用可见、可听、可表演的行动进入场面。"
 
         if is_feature:
-            act = strict_int(data.get("act", 0), "act", 0, 99)
-            sequence = strict_int(data.get("sequence", 0), "sequence", 0, 999)
+            act = strict_int(data["act"], "act", 1, 99)
+            sequence = strict_int(data["sequence"], "sequence", 1, 999)
             identity_frontmatter = (
                 f"scene: {scene}\nact: {act}\nsequence: {sequence}\n"
             )
@@ -171,14 +222,24 @@ updated: {today}
 人物依据：{card_list(lists["source_character_facts"])}
 背景依据：{card_list(lists["source_background_facts"])}
 世界规则：{card_list(lists["source_world_rules"])}
-场次任务：{str(data.get("scene_task", "")).strip()}
-观众入口：{str(data.get("audience_entry", "")).strip()}
-入场状态：{str(data.get("entry_state", "")).strip()}
-场面转折：{str(data.get("turn", "")).strip()}
-观众更新：{str(data.get("audience_update", "")).strip()}
-出场状态：{str(data.get("exit_state", "")).strip()}
+视点人物：{fields["viewpoint_character"]}
+场景目标：{fields["scene_objective"]}
+故事价值：{fields["story_value"]}
+入场价值：{fields["entry_value"]}
+主冲突：{fields["primary_conflict"]}
+策略：{fields["tactic"]}
+预期结果：{fields["expected_result"]}
+实际结果：{fields["actual_result"]}
+结果落差：{fields["result_gap"]}
+场面转折：{fields["turn"]}
+观众入口：{str(data.get("audience_entry", "")).strip() or "-"}
+观众更新：{fields["audience_update"]}
+出场价值：{fields["exit_value"]}
+下场压力：{fields["next_pressure"]}
+对白潜台词：{str(data.get("dialogue_subtext", "")).strip() or "-"}
+人物语言：{str(data.get("character_voice", "")).strip() or "-"}
 禁止矛盾：{card_list(lists["forbidden_contradictions"])}
-故事时间：{story_time}
+故事时间：{story_time or "-"}
 出场人物：{display_characters}
 
 ## 正文
@@ -198,7 +259,7 @@ updated: {today}
             print(f"\nDRY-RUN: 校验通过，未创建场次：{target}", file=sys.stderr)
             return 0
         atomic_write_text(target, text)
-        print(f"OK: 已创建{('电影' if is_feature else '剧集')}场次：{target}")
+        print(f"OK: 已创建{'电影' if is_feature else '剧集'}场次：{target}")
         return 0
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

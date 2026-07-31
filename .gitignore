@@ -1,2 +1,4 @@
 __pycache__/
 *.py[cod]
+.test-tmp/
+.test-tmp-v2/

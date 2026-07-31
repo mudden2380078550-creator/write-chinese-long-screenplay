@@ -11,6 +11,7 @@ from screenplay_io import atomic_write_text, read_text
 
 
 FORMATS = ("feature", "series", "short-drama", "animation")
+ADAPTERS = ("field", "mckee", "save-the-cat")
 
 
 def parse_args() -> argparse.Namespace:
@@ -18,6 +19,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--project-root", required=True, type=Path)
     parser.add_argument("--title", required=True)
     parser.add_argument("--format", choices=FORMATS, default="series")
+    parser.add_argument(
+        "--adapter",
+        action="append",
+        choices=ADAPTERS,
+        help="电影结构适配器；可重复。剧集项目不接受该参数",
+    )
     return parser.parse_args()
 
 
@@ -25,6 +32,9 @@ def main() -> int:
     args = parse_args()
     if not args.title.strip() or "\n" in args.title or "\r" in args.title:
         print("ERROR: 项目名不能为空或包含换行。", file=sys.stderr)
+        return 2
+    if args.format != "feature" and args.adapter:
+        print("ERROR: 结构适配器仅用于电影项目。", file=sys.stderr)
         return 2
 
     try:
@@ -64,6 +74,12 @@ def main() -> int:
             text = read_text(path)
             for token, value in replacements.items():
                 text = text.replace(token, value)
+            if path.name == "project.md" and args.adapter:
+                adapters = list(dict.fromkeys(args.adapter))
+                yaml_adapters = "structure_adapters:\n" + "\n".join(
+                    f'  - "{adapter}"' for adapter in adapters
+                )
+                text = text.replace("structure_adapters: []", yaml_adapters)
             atomic_write_text(path, text)
     except (OSError, UnicodeError, ValueError, shutil.Error) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
@@ -71,6 +87,8 @@ def main() -> int:
 
     print(f"OK: 已初始化中文长剧本项目：{project_root}")
     print(f"格式：{args.format}")
+    if args.adapter:
+        print(f"结构适配器：{', '.join(dict.fromkeys(args.adapter))}")
     return 0
 
 

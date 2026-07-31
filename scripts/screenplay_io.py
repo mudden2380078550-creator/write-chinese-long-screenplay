@@ -15,6 +15,51 @@ FEATURE_SCENE_FILE_RE = re.compile(r"^S(?P<scene>\d{3})\.md$")
 SCENE_ID_RE = re.compile(r"^(?:E\d{3}-)?S\d{3}$")
 H2_RE = re.compile(r"^## ([^\r\n]+)\s*$", re.MULTILINE)
 EPISODIC_FORMATS = {"series", "short-drama", "animation"}
+SCHEMA_VERSION = 2
+STORY_ENGINE = "causal-value"
+STRUCTURE_ADAPTERS = {"field", "mckee", "save-the-cat"}
+LEDGER_ARRAY_KEYS = (
+    "state_changes",
+    "knowledge_changes",
+    "relationship_changes",
+    "object_changes",
+    "clue_changes",
+    "thread_changes",
+    "value_changes",
+    "decision_changes",
+    "audience_evidence",
+    "open_questions",
+    "uncertainties",
+)
+LEDGER_LIST_KEYS = ("scene_summaries", *LEDGER_ARRAY_KEYS)
+V2_REQUIRED_CARD_FIELDS = (
+    "来源依据",
+    "人物依据",
+    "视点人物",
+    "场景目标",
+    "故事价值",
+    "入场价值",
+    "主冲突",
+    "策略",
+    "预期结果",
+    "实际结果",
+    "结果落差",
+    "场面转折",
+    "观众更新",
+    "出场价值",
+    "下场压力",
+    "禁止矛盾",
+)
+V2_OPTIONAL_CARD_FIELDS = (
+    "背景依据",
+    "世界规则",
+    "观众入口",
+    "对白潜台词",
+    "人物语言",
+    "故事时间",
+    "出场人物",
+)
+UNRESOLVED_MARKERS = ("【待补】", "待补", "TODO", "TBD", "{{")
 
 
 def read_text(path: Path) -> str:
@@ -112,6 +157,23 @@ def project_format(project_root: Path) -> str:
     return value
 
 
+def project_contract(project_root: Path) -> tuple[dict[str, Any], list[str]]:
+    metadata = project_metadata(project_root)
+    errors: list[str] = []
+    if metadata.get("schema_version") != SCHEMA_VERSION:
+        errors.append(f"schema_version 必须为 {SCHEMA_VERSION}")
+    if metadata.get("story_engine") != STORY_ENGINE:
+        errors.append(f"story_engine 必须为 {STORY_ENGINE}")
+    adapters = metadata.get("structure_adapters")
+    if not isinstance(adapters, list):
+        errors.append("structure_adapters 必须是 YAML 数组")
+    else:
+        unknown = sorted({str(item) for item in adapters} - STRUCTURE_ADAPTERS)
+        if unknown:
+            errors.append(f"未知 structure_adapters：{', '.join(unknown)}")
+    return metadata, errors
+
+
 def extract_h2_sections(body: str) -> tuple[list[str], dict[str, str]]:
     matches = list(H2_RE.finditer(body))
     names = [match.group(1).strip() for match in matches]
@@ -121,6 +183,16 @@ def extract_h2_sections(body: str) -> tuple[list[str], dict[str, str]]:
         end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
         sections[match.group(1).strip()] = body[start:end].strip()
     return names, sections
+
+
+def labeled_value(text: str, label: str) -> str:
+    match = re.search(rf"^{re.escape(label)}：(.*)$", text, re.MULTILINE)
+    return match.group(1).strip() if match else ""
+
+
+def unresolved(value: Any) -> bool:
+    text = str(value or "").strip()
+    return not text or any(marker.casefold() in text.casefold() for marker in UNRESOLVED_MARKERS)
 
 
 def scene_identity(path: Path) -> tuple[str, int | None, int]:

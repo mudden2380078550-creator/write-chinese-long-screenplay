@@ -1,8 +1,17 @@
-# 辅助脚本输入
+# v2 辅助脚本输入
+
+## 目录
+
+- [`write_scene.py`](#write_scenepy)
+- [`update_ledger.py`](#update_ledgerpy)
+- [`build_context.py`](#build_contextpy)
+- [`self_review.py`](#self_reviewpy)
 
 所有 JSON 使用 UTF-8，字段名使用英文，创作内容使用项目语言。
 
-## 电影 `write_scene.py`
+## `write_scene.py`
+
+电影示例：
 
 ```json
 {
@@ -16,6 +25,7 @@
   "interior_exterior": "内",
   "story_time": "失踪后第三天 02:10",
   "characters": ["char-gu-qing", "char-luo-zhou"],
+  "viewpoint_character": "char-gu-qing",
   "display_characters": "顾晴、罗舟",
   "threads": ["main", "sister"],
   "source_files": [
@@ -25,7 +35,7 @@
     "outline/scene-outline.md"
   ],
   "source_character_facts": [
-    "顾晴需要控制局面，拒绝承认自己害怕封闭空间。"
+    "顾晴试图控制局面，不愿承认自己害怕封闭空间。"
   ],
   "source_background_facts": [
     "十年前的码头事故仍被港务公司压下。"
@@ -36,98 +46,91 @@
   "forbidden_contradictions": [
     "顾晴此时还不知道罗舟参与过旧事故。"
   ],
-  "audience_entry": "观众知道顾晴拿到了仓库编号，不知道来源。",
-  "scene_task": "顾晴要在通道关闭前拿到账本，同时隐藏幽闭恐惧。",
-  "entry_state": "顾晴控制行动，罗舟被迫配合。",
-  "turn": "罗舟锁上外门，承认潮水会提前回灌。",
+  "scene_objective": "顾晴要在通道关闭前拿到账本。",
+  "story_value": "控制权",
+  "entry_value": "顾晴控制行动，罗舟被迫配合。",
+  "primary_conflict": "罗舟掌握潮汐风险，却拒绝交出路线控制。",
+  "tactic": "顾晴用证据和时间压力逼罗舟服从。",
+  "expected_result": "罗舟交出路线，顾晴独自完成取证。",
+  "actual_result": "罗舟锁门并证明潮水会提前回灌。",
+  "result_gap": "顾晴的威胁反而让唯一知路的人掌握逃生权。",
+  "turn": "罗舟锁上外门，准确说出提前回灌时间。",
+  "audience_entry": "观众知道顾晴拿到仓库编号，不知道来源。",
   "audience_update": "罗舟比顾晴更了解仓库结构。",
-  "exit_state": "顾晴必须依赖罗舟才能离开。",
+  "exit_value": "顾晴必须依赖罗舟才能离开。",
+  "next_pressure": "两人必须在互不信任中共用唯一逃生路线。",
+  "dialogue_subtext": "顾晴要求合作，实际在掩饰失去控制的恐惧。",
+  "character_voice": "顾晴用短句和程序性词汇压缩情绪；罗舟以具体时间反制。",
   "draft": "△ 铁门在顾晴身后合拢。她没有回头，只把手电调到最亮。\n\n顾晴：二十分钟，拿东西，走人。",
   "continuity": [],
   "revision_notes": []
 }
 ```
 
-电影不使用 `episode`，输出 `S018.md`。
-
-## 剧集 `write_scene.py`
-
-与电影字段相同，但增加：
-
-```json
-{
-  "episode": 6,
-  "scene": 18
-}
-```
-
-输出 `E006-S018.md`。
+剧集增加 `episode`，不使用 `act`、`sequence` 也可。所有载体共享 v2 场景内核。
 
 约束：
 
-- `status`: `outline | draft | revision | final | locked`
-- `scene`、`episode`、`act`、`sequence` 必须是整数；不接受小数或布尔值
-- `time_of_day`: `日 | 夜 | 晨 | 昏 | 连续`
-- `interior_exterior`: `内 | 外 | 内外`
-- `characters`、`threads`、`source_files` 和各类依据字段必须是数组
-- `source_files` 使用项目内相对路径，不接受项目外路径或符号链接逃逸
-- 场号存在时拒绝覆盖
-- `--dry-run` 完成全部校验并输出待写内容，但不创建文件
+- `viewpoint_character` 必须在 `characters` 中；
+- `source_files` 和 `source_character_facts` 不得为空；
+- `entry_value` 与 `exit_value` 不得相同；
+- `expected_result` 与 `actual_result` 不得相同；
+- 所有 v2 场景文本字段不得为空或含 `【待补】`；
+- `source_files` 只能引用项目内现存文件；
+- 场次已存在时拒绝覆盖。
 
 ## `update_ledger.py`
-
-电影使用 `S018`，剧集使用 `E006-S018`：
 
 ```json
 {
   "scene_id": "S018",
-  "summary": "顾晴进入退潮仓库，被迫把逃生控制权交给罗舟。",
+  "summary": "顾晴被迫把逃生控制权交给罗舟。",
   "state_changes": [],
   "knowledge_changes": [],
   "relationship_changes": [],
   "object_changes": [],
   "clue_changes": [],
   "thread_changes": [],
-  "audience_evidence": [
+  "value_changes": [
     {
-      "evidence": "罗舟准确说出回灌时间并锁门",
-      "expected_inference": "罗舟熟悉仓库",
-      "uncertainty": "他为何熟悉仍未知"
+      "value": "控制权",
+      "from": "顾晴控制",
+      "to": "顾晴依赖罗舟"
     }
   ],
+  "decision_changes": [],
+  "audience_evidence": [],
   "open_questions": [],
   "uncertainties": []
 }
 ```
 
-除 `scene_id` 外字段可省略。摘要替换同场旧摘要；其他完全相同的记录不重复追加。
-
 ## `build_context.py`
-
-电影：
 
 ```powershell
 python build_context.py --project-root . --scene 18 `
   --profile scene `
   --query "顾晴 仓库 潮汐" `
   --source-file "bible/characters/gu-qing.md" `
-  --source-file "bible/world/tide-rule.md" `
   --output context.md
 ```
 
-剧集增加 `--episode`。上下文档位：
+正文档位为 `scene-light`（约 4,000）、`scene`（约 7,000）、`scene-complex`（约 12,000）和 `batch`（约 16,000 tokens）。`batch` 必须同时传入 `--scene-from` 与 `--scene-to`，范围须递增且最多连续 8 场：
 
-- `scene`：默认约 3200 tokens；目标场、前两场、显式来源、目标大纲和紧凑台账；
-- `sequence`：默认约 5000 tokens；处理稿、序列/分集大纲和结构资料；
-- `review`：默认约 8000 tokens；用于全稿检查。
+```powershell
+python build_context.py --project-root . `
+  --scene-from 18 --scene-to 23 --profile batch `
+  --query "顾晴 罗舟 仓库 潮汐 序列目标" `
+  --output batch-context.md
+```
 
-`--max-tokens` 可覆盖默认预算，最小值为 500。单场默认不读取未来正文；改稿回归需要后一场时显式增加 `--include-next-scene`，且必须同时提供 `--scene`。
+其他档位为 `sequence`、`dialogue-review`、`structure-review`、`full-review`；`review` 是 `full-review` 的兼容别名。`--max-tokens` 可覆盖档位预算，最小为 500。输出文件已存在时拒绝覆盖；确认替换临时上下文时显式添加 `--force`。
 
 ## `self_review.py`
 
 ```powershell
-python self_review.py --project-root . --strict --compact `
-  --output reviews/self-review.md
+python self_review.py --project-root . --focus dialogue --strict `
+  --adapter mckee --output reviews/dialogue-review.md
 ```
 
-`--strict` 将电影场次缺少来源、人物卡缺失和场次卡关键字段缺失列为阻断问题，并以非零状态退出。`--compact` 省略量化表、来源追溯表和静态五遍审查模板；完整报告不加该参数。
+`--focus` 可取 `scene | dialogue | structure | continuity | full`。`--adapter` 可重复；省略时读取项目 `structure_adapters`。

@@ -8,21 +8,17 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from screenplay_io import atomic_write_json, require_inside
+from screenplay_io import (
+    LEDGER_ARRAY_KEYS,
+    atomic_write_json,
+    project_contract,
+    project_format,
+    require_inside,
+)
 
 
 SCENE_ID_RE = re.compile(r"^(?:E(?P<episode>\d{3})-)?S(?P<scene>\d{3})$")
-ARRAY_KEYS = (
-    "state_changes",
-    "knowledge_changes",
-    "relationship_changes",
-    "object_changes",
-    "clue_changes",
-    "thread_changes",
-    "audience_evidence",
-    "open_questions",
-    "uncertainties",
-)
+ARRAY_KEYS = LEDGER_ARRAY_KEYS
 INPUT_KEYS = {"scene_id", "summary", *ARRAY_KEYS}
 
 
@@ -60,6 +56,14 @@ def main() -> int:
             raise ValueError("scene_id 必须形如 S001 或 E001-S001")
 
         root = args.project_root.resolve()
+        _, contract_errors = project_contract(root)
+        if contract_errors:
+            raise ValueError("项目不是有效 v2：" + "；".join(contract_errors))
+        format_name = project_format(root)
+        if format_name == "feature" and match.group("episode") is not None:
+            raise ValueError("电影项目的 scene_id 必须形如 S001")
+        if format_name != "feature" and match.group("episode") is None:
+            raise ValueError("剧集项目的 scene_id 必须形如 E001-S001")
         scene_path = root / "screenplay" / "scenes" / f"{scene_id}.md"
         require_inside(scene_path, root)
         if not scene_path.is_file():
@@ -69,6 +73,10 @@ def main() -> int:
         ledger = json.loads(ledger_path.read_text(encoding="utf-8-sig"))
         if not isinstance(ledger, dict):
             raise ValueError("story-ledger.json 顶层必须是对象")
+        if ledger.get("schema_version") != 2:
+            raise ValueError("story-ledger.json schema_version 必须为 2")
+        if ledger.get("format") != format_name:
+            raise ValueError("story-ledger.json format 与项目不一致")
 
         for key in ("scene_summaries", *ARRAY_KEYS):
             ledger.setdefault(key, [])
@@ -77,6 +85,8 @@ def main() -> int:
 
         if "summary" in payload:
             summary = str(payload["summary"]).strip()
+            if not summary:
+                raise ValueError("summary 不能为空")
             ledger["scene_summaries"] = [
                 item
                 for item in ledger["scene_summaries"]

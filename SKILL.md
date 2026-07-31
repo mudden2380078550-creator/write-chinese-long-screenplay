@@ -1,160 +1,104 @@
 ---
 name: write-chinese-long-screenplay
-description: 规划、创作、续写、改写和自审中文电影及剧集剧本。用于从人物小传、故事背景、世界观、主题和情节设定生成可拍摄正文，维护结构、连续性与来源追溯，并执行校验、编译和改稿。
+description: 从两个核心输入板块——背景设定与人物设定（含人物小传）——规划、创作、续写、改写和自审中文电影及剧集剧本。将设定转成欲望、限制、行动、冲突、结果落差和可拍摄正文；默认减少术语、模板和说明性 AI 文风，保留人物知识、连续性、对白潜台词和来源约束。
 ---
 
-# 中文长剧本写作
+# 中文长剧本写作（双输入版）
 
-将人物、背景和世界规则转成当前压力、人物选择与可见后果。保持项目正典稳定，用受限上下文写作，不把设定复制成说明性对白。
+本 Skill 的用户创作入口只保留两个板块：
 
-## 核心规则
+1. `background/story-background.md`：背景设定。
+2. `bible/characters/*.md`：人物设定与人物小传。
 
-- 先读项目 `AGENTS.md`、`project.md` 和目标载体资料。
-- 用户当前指令优先；正文事实高于大纲计划。详细层级见 [project-model.md](references/project-model.md)。
-- 人物只能使用当时已经获得的信息；作者真相、人物认知和观众证据必须分开。
-- 动作写可见可听结果；对白必须对另一人物实施行动。
-- 新增事实要有来源；不确定内容进入候选或 `uncertainties`，不得静默成为正典。
-- 不覆盖既有场次。改稿先列根因场、影响范围和锁定项。
-- 自动脚本只查高确定性问题；语义自审仍须由模型或编辑完成。
+故事结构、场景卡、连续性台账和自审表是内部工作资料，由 Skill 根据这两个板块生成和维护，不要求用户先学习菲尔德、麦基或救猫咪的术语。
 
-## 选择路径
+## 两个输入板块
 
-读取 `project.md` 的 `format`：
+### 背景设定
 
-- `feature`：电影，场次 `S001.md`。读取 [feature-film-workflow.md](references/feature-film-workflow.md)。
-- `series`、`short-drama`、`animation`：剧集，场次 `E001-S001.md`。读取 [long-form-architecture.md](references/long-form-architecture.md)。
+只记录会改变人物选择、代价、风险、时间、空间或观众判断的内容：
 
-只在需要时加载：
+- 时代、地点、制度、组织和日常秩序；
+- 故事开始前已经发生、且仍在产生后果的事件；
+- 世界规则、资源、限制、成本和例外；
+- 关键地点、物件、线索和可重复使用的机制；
+- 作者真相、人物已知、人物误信、观众已知之间的差异；
+- 不能违背的历史、规则和事实。
 
-- 来源转戏：[source-to-screenplay.md](references/source-to-screenplay.md)
-- 格式：[chinese-screenplay-format.md](references/chinese-screenplay-format.md)
-- 场景、对白、表演：[scene-dialogue-performance.md](references/scene-dialogue-performance.md)
-- 台账与改稿：[continuity-revision.md](references/continuity-revision.md)
-- 自审：[self-review.md](references/self-review.md)
-- 当前类型：[genre-engines.md](references/genre-engines.md) 中对应部分
-- 脚本 JSON：[tool-input-schemas.md](references/tool-input-schemas.md)
+每条设定必须能回答：它会迫使谁做什么选择？不遵守会付出什么代价？它将在何时以可见后果进入剧情？不能只写百科介绍。
 
-不要一次读取全部 references。
+### 人物设定
 
-## 初始化
+每个主要人物至少明确：
 
-仅在用户要求新建项目时运行：
+- 外在欲望与当前任务；
+- 内在需要、错误信念和保护策略；
+- 恐惧、底线、秘密和必须隐瞒的内容；
+- 能力、资源、限制和不能采用的简单方案；
+- 关系交换、依赖、债务、竞争与称谓；
+- 当前知道什么、不知道什么、误信什么；
+- 受到低、中、高压力时会怎样行动，何时会换招；
+- 语言节奏、句长、称谓、回避方式、攻击方式和不会说的话；
+- 故事终点必须承担的选择与代价。
 
-```powershell
-python "<skill-dir>\scripts\init_project.py" `
-  --project-root "<project-root>" `
-  --title "<片名>" `
-  --format feature
+履历只有在会改变当下行为时才进入正文。人物不是设定说明员，而是带着欲望和误判行动的人。
+
+## 内部生成链
+
+读取项目 `AGENTS.md`、`project.md`，再读取上述两个板块。不要把全套理论资料或全部未来正文装入每场上下文。
+
+把输入压缩成内部行动模型：
+
+```text
+背景事实 → 人物欲望与限制 → 当前压力 → 人物策略
+→ 对手/环境反制 → 预期与实际结果的落差
+→ 价值或关系变化 → 下一场压力
 ```
 
-剧集将 `feature` 换成 `series`、`short-drama` 或 `animation`。初始化拒绝覆盖非空目录。
+电影正文前先形成一页以内的故事骨架：主题命题（可选）、主角欲望、对抗力量、激励性扰动、递进复杂化、危机选择、高潮行动和结局价值。结构标签只用于定位问题，不强迫故事服从固定百分比或十五节拍。
 
-## 电影正文工作流
+每场先回答：
 
-若用户已有材料，从现有成熟阶段开始；否则依次建立：
-
-1. 人物小传、故事背景、世界规则；
-2. 梗概与处理稿；
-3. 幕/序列结构；
-4. 逐场大纲；
-5. 场次正文；
-6. 台账、自审、改稿和编译。
-
-写场前，把相关来源事实转换为：
-
-`来源事实 → 当前压力 → 人物策略 → 视听证据 → 观众推断 → 禁止矛盾`
-
-一场至少明确：即时目标、阻碍、换招、转折、观众更新和退出状态。资料不足以决定身份、动机、规则或结局时，停在大纲或列出假设，不伪造正文。
-
-## 构建受限上下文
-
-单场正文默认约 3,200 tokens：
-
-```powershell
-python "<skill-dir>\scripts\build_context.py" `
-  --project-root "<project-root>" `
-  --scene 18 `
-  --profile scene `
-  --query "人物、地点、线索或规则" `
-  --source-file "bible/characters/char-id.md" `
-  --source-file "background/story-background.md" `
-  --output "<临时目录>\scene-context.md"
+```text
+谁想改变什么？
+他根据什么已知信息采取什么策略？
+谁或什么进行反制？
+结果为什么没有按预期发生？
+人物失去、获得或重新理解了什么？
+下场因此必须处理什么压力？
 ```
 
-档位：
+再生成可拍摄正文。动作写可见、可听、可表演的结果；对白必须对另一个人物实施行动，而不是替作者讲解背景。
 
-- `scene`：显式来源、目标大纲、目标/前两场、紧凑台账；默认不读未来场。
-- `sequence`：约 5,000 tokens，用于处理稿、序列或分集规划。
-- `review`：约 8,000 tokens，用于全稿审查。
+## 中文自然度控制
 
-`--max-tokens` 可覆盖档位预算。仅在改稿回归需要验证后一场时使用 `--include-next-scene`。剧集项目增加 `--episode N`。
+每场正文完成后按 [natural-chinese.md](references/natural-chinese.md) 的 24 类中文问题清单做一次局部审查。该清单只借用 `Humanizer-zh` 公开列出的中文问题分类，不加载其提示词、检测器、分数或其他项目资源。至少做到：
 
-## 写入场次
+- 不把人物心理、主题和场景功能逐句说透；
+- 不让所有人物使用同一套完整句、抽象词和结论句；
+- 不用“然而、与此同时、这意味着、他意识到、命运”等连接词替代具体行动；
+- 不把对白写成问答式资料交换；
+- 允许停顿、打断、答非所问、口语省略、重复、地方用语和不完整句；
+- 让人物通过物件、距离、动作、回避和语气暴露关系；
+- 删除不改变行动、信息、关系或人物的句子；
+- 保留不工整但准确的表达，不为了“文学化”而统一修辞。
 
-场次必须包含以下 H2，且各出现一次：
+用户提供的真实中文片段可作为风格校准资料，但只能学习句法、节奏、视角和对白习惯，不复制其人物、情节或原句。
 
-1. `## 场次卡`
-2. `## 正文`
-3. `## 连续性`
-4. `## 改稿备注`
+## 自审顺序
 
-电影 frontmatter 使用 `S001`，剧集使用 `E001-S001`。`source_files` 记录本场真正依赖的人物、背景、世界和大纲文件；正文使用 `△` 动作段和 `人物名：对白`。
+默认只做五项：
 
-先把场次数据写入临时 JSON，再执行：
+1. 背景是否真正改变了选择和代价；
+2. 人物行动是否符合欲望、知识、资源、关系和当前压力；
+3. 每场是否有策略、反制、结果落差和可辨认的价值变化；
+4. 对白是否有行动、潜台词、人物差异，是否避免说明性对白；
+5. 中文是否出现模板化、解释过量、情绪标签堆积和所有人物同声同气。
 
-```powershell
-python "<skill-dir>\scripts\write_scene.py" `
-  --project-root "<project-root>" `
-  --input "<临时目录>\scene.json" `
-  --dry-run
-```
+发生连续性问题时，再检查人物知识、伤势、物件、线索、时间和规则成本。重大结构问题只回到故事骨架修复，不为了填结构标签添加无因果场景。
 
-核实后去掉 `--dry-run`。脚本拒绝覆盖已存在场次。
+## 工程兼容层
 
-## 台账
+现有 `init_project.py`、`write_scene.py`、`validate_project.py`、`self_review.py`、`compile_screenplay.py` 和迁移脚本继续保留，用于安全写入、严格校验、连续性和导出；它们是工程保障，不是用户必须学习的创作板块。旧项目仍需显式迁移，不能猜测缺失的创作内容。
 
-只记录正文已发生或用户已锁定的状态变化：
-
-```powershell
-python "<skill-dir>\scripts\update_ledger.py" `
-  --project-root "<project-root>" `
-  --input "<临时目录>\scene-state.json" `
-  --dry-run
-```
-
-核实后去掉 `--dry-run`。人物知识、关系、物件、线索和观众证据分开记录。
-
-## 自审与完成门禁
-
-每个序列、重要转折、单集或完整初稿运行：
-
-```powershell
-python "<skill-dir>\scripts\self_review.py" `
-  --project-root "<project-root>" `
-  --strict `
-  --compact `
-  --output "<project-root>\reviews\self-review.md"
-```
-
-`--compact` 省略重复的静态审查模板；需要完整工作表时去掉。然后按 [self-review.md](references/self-review.md) 完成来源忠实度、因果与人物、观众盲读、电影性与可表演性、结构与节奏五遍语义审查。
-
-结构校验与编译：
-
-```powershell
-python "<skill-dir>\scripts\validate_project.py" `
-  --project-root "<project-root>" `
-  --strict
-
-python "<skill-dir>\scripts\compile_screenplay.py" `
-  --project-root "<project-root>" `
-  --output "<project-root>\exports\screenplay.md"
-```
-
-完成前必须满足：
-
-- `blocking` 为零，`major` 已修复或由用户明确接受；
-- 人物行动符合其欲望、知识、关系和压力；
-- 关键观众推断有正文视听证据；
-- 入场与出场状态实质不同；
-- 高潮使用已建立机制并由人物选择完成；
-- 正文、台账、自审报告和编译稿同步。
+完成前确认：两个输入板块已被实际使用；正文不是背景或人物小传的改写；人物有主动选择；场景产生后果；对白有对象和策略；中文已按 24 类问题清单完成局部审查和必要改写；没有未经授权的新正典事实。

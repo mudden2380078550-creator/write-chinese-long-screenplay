@@ -9,12 +9,14 @@ from screenplay_io import (
     extract_h2_sections,
     list_scene_files,
     parse_frontmatter,
+    project_contract,
     project_format,
     project_metadata,
     read_text,
     require_inside,
     scene_identity,
 )
+from validate_project import validate_project
 
 
 EXPECTED_H2 = ["场次卡", "正文", "连续性", "改稿备注"]
@@ -37,7 +39,18 @@ def main() -> int:
         else (root / "exports" / "screenplay.md").resolve()
     )
     try:
+        _, contract_errors = project_contract(root)
+        if contract_errors:
+            raise ValueError("项目不是有效 v2：" + "；".join(contract_errors))
         format_name = project_format(root)
+        _, _, validation_errors, _ = validate_project(root, True)
+        if validation_errors:
+            codes = ", ".join(
+                dict.fromkeys(str(item["code"]) for item in validation_errors)
+            )
+            raise ValueError(
+                f"严格校验未通过（{len(validation_errors)} 项：{codes}）；拒绝编译"
+            )
         if format_name == "feature" and args.episode is not None:
             raise ValueError("电影项目不使用 --episode")
         if args.episode is not None and not 1 <= args.episode <= 999:
