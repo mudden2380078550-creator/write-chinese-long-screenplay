@@ -2,7 +2,28 @@
 
 [中文说明](README.md)
 
-A Codex skill for writing Chinese-language feature films and episodic screenplays. The streamlined version has only two author-facing inputs: background setting and character setting, including biographies. Story architecture, scene causality, continuity, and dialogue checks are handled internally.
+A Chinese feature-film and episodic-screenplay writing skill for mainstream AI agents, including **Codex, Claude Code, DeepSeek Harness (dsh), zcode**, and others. It follows the industry-standard Agent Skills (`SKILL.md`) open convention, so the same skill body loads and runs across agents without per-agent rewrites.
+
+The streamlined version has only two author-facing inputs: background setting and character setting, including biographies. Story architecture, scene causality, continuity, and dialogue checks are handled internally.
+
+## Design foundation (what this is based on)
+
+The skill is built on an explicit combination, which is also why it works across agents:
+
+- **Technical foundation**: the Agent Skills (`SKILL.md`) open convention — `name`/`description` drive routing, while `references/`, `scripts/`, and `assets/` provide structured resources. Codex, Claude Code, dsh, and others natively support the convention, so the skill body needs no per-agent adaptation. All internal scripts use only the **Python standard library**, with no third-party dependencies; any environment running Python 3.10+ can execute the deterministic checks.
+- **Screenwriting method**: the conceptual mapping is informed by Syd Field's feature-screenplay structure, Robert McKee's story and dialogue methods, and Blake Snyder's feature-screenwriting methods. These are compressed into an internal diagnostic framework — you do not need to learn Field, McKee, or Save the Cat terminology first.
+- **Chinese-language calibration**: the de-AI-flavor review borrows the 24 Chinese problem categories publicly listed by [Humanizer-zh](https://github.com/op7418/Humanizer-zh), rephrased as a screenplay review checklist. It does not import that project's rewrite prompts, detector, score, voice templates, or code.
+
+See "Copyright and method sources" at the end for precise attribution.
+
+## Supported agents
+
+| Agent | Skills directory | Notes |
+| --- | --- | --- |
+| Codex | `~/.codex/skills/write-chinese-long-screenplay/` | Native `SKILL.md` support |
+| Claude Code | `~/.claude/skills/write-chinese-long-screenplay/` | Native `SKILL.md` support |
+| DeepSeek Harness (dsh) | `~/.dsh/skills/write-chinese-long-screenplay/` | dsh scans this directory via its skill-filesystem plugin and exposes the skill to the model as an invocable tool |
+| zcode and other Agent Skills agents | Per each tool's documented skills directory | The same `SKILL.md` works as-is |
 
 ## Two author-facing blocks
 
@@ -22,9 +43,11 @@ The feature/series bible, structure map, sequences, scene cards, ledger, and rep
 
 ## Chinese AI-style and calibration
 
-The current version uses only the 24 Chinese problem categories publicly listed by [Humanizer-zh](https://github.com/op7418/Humanizer-zh), rephrased as a screenplay review checklist. It does not import that project's rewrite prompts, detector, score, voice templates, or code. Automated checks only flag high-confidence signals; detector scores are not a writing target.
+The current version treats "removing the AI flavor" as an independent check: it borrows only the 24 Chinese problem categories publicly listed by [Humanizer-zh](https://github.com/op7418/Humanizer-zh), rephrased as a screenplay review checklist. It does not import that project's rewrite prompts, detector, score, voice templates, or code. Automated checks only flag high-confidence signals; detector scores are not a writing target.
 
-The most useful feedback is a rewrite pair, not “make it natural”:
+The checklist covers four groups and 24 problem types: content inflation and ad-speak, high-frequency AI language and false symmetry, formatting-decoration leakage, and collaborative metadiscourse and hollow conclusions. The review distinguishes action description, dialogue, and formatting so it does not misjudge normal repetition, dashes, quotation marks, or "is" as problems. The full checklist lives in `references/natural-chinese.md`.
+
+The most useful feedback is a rewrite pair, not "make it natural":
 
 ```text
 Original:
@@ -33,7 +56,7 @@ Rewrite:
 Effect to preserve:
 ```
 
-Put 5–20 pairs in the “real Chinese samples” section of `style/screenplay-style.md`. They calibrate the current project but do not permanently train the base model; permanent changes require a separate dataset and fine-tuning process. Use samples for syntax, rhythm, and character distinction, not for copying copyrighted passages.
+Put 5–20 pairs in the "real Chinese samples" section of `style/screenplay-style.md`. They calibrate the current project but do not permanently train the base model; permanent changes require a separate dataset and fine-tuning process. Use samples for syntax, rhythm, and character distinction, not for copying copyrighted passages.
 
 ## Internal writing engine
 
@@ -56,27 +79,39 @@ Author theories remain internal diagnostic material. Users do not need to select
 
 Chinese pages receive a local de-templating review for exposition, abstract psychology, identical voices, overly polished syntax, and slogan-like endings. Unflagged lines are not rewritten merely to create variation. See `references/natural-chinese.md`.
 
-## Requirements and installation
+## Requirements
 
-- A Codex environment with `SKILL.md` support
+- An agent environment with `SKILL.md` support (Codex / Claude Code / dsh / zcode, etc.)
 - Python 3.10+
 - Git when installing by clone
 
 The scripts use only the Python standard library.
 
-Windows PowerShell:
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git
+```
+
+Place the skill directory into your agent's skills directory (`Copy-Item -Recurse` on Windows PowerShell, `cp -r` on macOS/Linux):
+
+| Agent | Example command (macOS / Linux) |
+| --- | --- |
+| Codex | `cp -r write-chinese-long-screenplay ~/.codex/skills/` |
+| Claude Code | `cp -r write-chinese-long-screenplay ~/.claude/skills/` |
+| dsh | `cp -r write-chinese-long-screenplay ~/.dsh/skills/` |
+| zcode, etc. | Per each tool's documented skills directory |
+
+You can also clone directly to the target directory, for example:
 
 ```powershell
 git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git `
   "$HOME\.codex\skills\write-chinese-long-screenplay"
 ```
 
-macOS / Linux:
-
-```bash
-git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git \
-  "$HOME/.codex/skills/write-chinese-long-screenplay"
-```
+After installation, start a new task; restart the agent if the skill does not appear. dsh watches its skills directory and updates the catalog automatically.
 
 ## Initialize a v2 project
 
@@ -184,7 +219,7 @@ Deterministic checks cannot replace editorial judgment about motivation, subtext
 
 ## Copyright and method sources
 
-The conceptual mapping is informed by Syd Field's feature-screenplay methods, Robert McKee's story and dialogue methods, and Blake Snyder's feature-screenwriting methods. This repository contains original mappings, workflows, templates, and validation code; it does not distribute the books, extended quotations, or chapter summaries that substitute for the source works.
+The conceptual mapping is informed by Syd Field's feature-screenplay methods, Robert McKee's story and dialogue methods, and Blake Snyder's feature-screenwriting methods. The de-AI-flavor review categories reference the public Chinese-language checklist from [Humanizer-zh](https://github.com/op7418/Humanizer-zh). This repository contains original mappings, workflows, templates, and validation code; it does not distribute the books, extended quotations, or chapter summaries that substitute for the source works.
 
 ## License
 

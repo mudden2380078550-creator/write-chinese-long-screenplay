@@ -2,7 +2,28 @@
 
 [English](README_EN.md)
 
-中文电影与剧集长剧本写作 Skill。新版只要求两个创作输入：背景设定、人物设定（含人物小传）。其余故事骨架、场景因果、连续性和对白检查由 Skill 内部完成。
+面向 **Codex、Claude Code、DeepSeek Harness (dsh)、zcode** 等主流 AI Agent 的中文电影与剧集长剧本写作 Skill。它遵循业界通用的 Agent Skills（`SKILL.md`）开放规范，同一份技能本体可直接被多家 Agent 加载与调用，无需为每家单独改写。
+
+新版只要求两个创作输入：背景设定、人物设定（含人物小传）。其余故事骨架、场景因果、连续性和对白检查由 Skill 内部完成。
+
+## 设计基础（基于什么做的）
+
+本 Skill 建立在明确的组合之上，这也是它能跨 Agent 工作的原因：
+
+- **技术基础**：采用 Agent Skills（`SKILL.md`）开放规范——`name`/`description` 驱动路由，`references/`、`scripts/`、`assets/` 提供结构化资源。Codex、Claude Code、dsh 等均原生支持该规范，因此技能本体不需要为各家 Agent 单独适配。内部脚本全部使用 **Python 标准库**，无第三方依赖，任何能运行 Python 3.10+ 的环境都能执行确定性校验。
+- **剧作方法**：概念映射参考悉德·菲尔德（Syd Field）的电影剧本结构方法、罗伯特·麦基（Robert McKee）的故事与对白方法、布莱克·斯奈德（Blake Snyder）的电影编剧方法。这些理论被压缩为**内部诊断框架**，用户不需要先学习菲尔德、麦基或救猫咪的术语。
+- **中文校准**：去 AI 味检查借用 [Humanizer-zh](https://github.com/op7418/Humanizer-zh) 公开的 24 类中文问题分类，改写为剧本场景检查清单；不引入其改写提示词、检测器、分数、声音模板或代码。
+
+更精确的版权与方法来源见文末「版权与方法来源」。
+
+## 支持哪些 Agent
+
+| Agent | 技能目录 | 说明 |
+| --- | --- | --- |
+| Codex | `~/.codex/skills/write-chinese-long-screenplay/` | 原生支持 `SKILL.md` |
+| Claude Code | `~/.claude/skills/write-chinese-long-screenplay/` | 原生支持 `SKILL.md` |
+| DeepSeek Harness (dsh) | `~/.dsh/skills/write-chinese-long-screenplay/` | dsh 通过 skill-filesystem 插件扫描该目录，并把技能作为可调用工具注入模型目录 |
+| zcode 及其余遵循 Agent Skills 规范的 Agent | 按各自文档中的 skills 目录放置 | 同一份 `SKILL.md` 直接可用 |
 
 ## 只保留两个创作板块
 
@@ -59,7 +80,7 @@
 
 ## 要求
 
-- 支持 `SKILL.md` 的 Codex 环境
+- 支持 `SKILL.md` 的 Agent 环境（Codex / Claude Code / dsh / zcode 等）
 - Python 3.10+
 - Git（克隆安装时）
 
@@ -67,21 +88,29 @@
 
 ## 安装
 
-Windows PowerShell：
+克隆仓库：
+
+```bash
+git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git
+```
+
+把技能目录放入对应 Agent 的 skills 目录（Windows PowerShell 用 `Copy-Item -Recurse`，macOS/Linux 用 `cp -r`）：
+
+| Agent | 命令示例（macOS / Linux） |
+| --- | --- |
+| Codex | `cp -r write-chinese-long-screenplay ~/.codex/skills/` |
+| Claude Code | `cp -r write-chinese-long-screenplay ~/.claude/skills/` |
+| dsh | `cp -r write-chinese-long-screenplay ~/.dsh/skills/` |
+| zcode 等 | 按各自文档的 skills 目录放置 |
+
+也可以直接克隆到目标目录，例如：
 
 ```powershell
 git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git `
   "$HOME\.codex\skills\write-chinese-long-screenplay"
 ```
 
-macOS / Linux：
-
-```bash
-git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git \
-  "$HOME/.codex/skills/write-chinese-long-screenplay"
-```
-
-安装后新建 Codex 任务；若 skill 未出现，请重启 Codex。
+安装后新建任务；若 skill 未出现，请重启对应 Agent。dsh 会监听 skills 目录变化并自动更新技能目录。
 
 ## 初始化 v2 项目
 
@@ -191,7 +220,7 @@ python -m unittest discover -s tests -v
 
 ## 版权与方法来源
 
-v2 的概念映射参考了悉德·菲尔德的电影剧本结构方法、罗伯特·麦基的故事与对白方法，以及布莱克·斯奈德的电影编剧方法。仓库只包含原创的术语矩阵、工作流、模板和校验代码，不包含书籍文件、长篇原文或可替代原书的章节摘要。
+本 Skill 的概念映射参考了悉德·菲尔德的电影剧本结构方法、罗伯特·麦基的故事与对白方法，以及布莱克·斯奈德的电影编剧方法；去 AI 味检查分类参考了 [Humanizer-zh](https://github.com/op7418/Humanizer-zh) 公开的中文问题清单。仓库只包含原创的术语矩阵、工作流、模板和校验代码，不包含书籍文件、长篇原文或可替代原书的章节摘要。
 
 ## 许可证
 
