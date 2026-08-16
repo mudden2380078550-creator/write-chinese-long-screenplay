@@ -1,0 +1,37 @@
+{
+  "name": "write-chinese-long-screenplay",
+  "version": "0.2.0",
+  "description": "中文电影与剧集长剧本写作 skill（SKILL.md）——双输入板块 + 因果—价值内核，保证长篇幅连续性与人物声音；兼容 Codex / Claude Code / DeepSeek Harness (dsh) / zcode",
+  "type": "module",
+  "files": [
+    "SKILL.md",
+    "README.md",
+    "README_EN.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "references",
+    "scripts",
+    "assets",
+    "agents",
+    "cordis.patch.yml"
+  ],
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "deepseek",
+    "dsh",
+    "skill",
+    "screenwriting",
+    "claude-code",
+    "codex",
+    "chinese"
+  ]
+}

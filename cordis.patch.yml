@@ -1,0 +1,6 @@
+# DSH bundle profile patch — 使本 skill 包可被 `dsh plugin add` 安装并激活。
+# `id`   = Cordis 插件 id
+# `name` = npm 包名（安装后在 node_modules 中解析）
+- insert:
+    - id: write-chinese-long-screenplay
+      name: write-chinese-long-screenplay

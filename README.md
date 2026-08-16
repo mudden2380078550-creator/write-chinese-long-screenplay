@@ -116,6 +116,12 @@ git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenp
   "$HOME\.codex\skills\write-chinese-long-screenplay"
 ```
 
+DeepSeek Harness 用户也可以直接以 bundle 安装（`package.json` 声明了 `dsh.bundle`）：
+
+```sh
+dsh plugin add "github:mudden2380078550-creator/write-chinese-long-screenplay"
+```
+
 安装后新建任务；若 skill 未出现，请重启对应 Agent。dsh 会监听 skills 目录变化并自动更新技能目录。
 
 ## 初始化 v2 项目
