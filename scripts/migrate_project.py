@@ -15,12 +15,14 @@ from screenplay_io import (
     atomic_write_json,
     atomic_write_text,
     extract_h2_sections,
+    join_table_row,
     labeled_value,
     list_scene_files,
     parse_frontmatter,
     project_format,
     read_text,
     require_inside,
+    split_table_row,
     unresolved,
 )
 from validate_project import (
@@ -169,6 +171,7 @@ def migrate_scene(text: str) -> tuple[str, list[str], list[str]]:
         "出场人物": labeled_value(card, "出场人物")
         or "、".join(str(item) for item in characters)
         or "-",
+        "两难选项": labeled_value(card, "两难选项") or "-",
     }
     ordered = (
         "场景标头",
@@ -196,6 +199,7 @@ def migrate_scene(text: str) -> tuple[str, list[str], list[str]]:
         "禁止矛盾",
         "故事时间",
         "出场人物",
+        "两难选项",
     )
     new_card = "\n".join(f"{label}：{values[label]}" for label in ordered)
     migrated_body = body.replace(
@@ -322,14 +326,6 @@ def upgrade_feature_bible(text: str) -> str:
                 1,
             )
     return updated
-
-
-def split_table_row(line: str) -> list[str]:
-    return [cell.strip() for cell in line.strip().strip("|").split("|")]
-
-
-def join_table_row(cells: list[str]) -> str:
-    return "| " + " | ".join(cells) + " |"
 
 
 def upgrade_table(

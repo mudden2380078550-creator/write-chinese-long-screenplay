@@ -4,6 +4,7 @@ import argparse
 import json
 import re
 import sys
+import unicodedata
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -20,12 +21,13 @@ from screenplay_io import (
     read_text,
     require_inside,
     scene_identity,
+    split_table_row,
     unresolved,
 )
 from validate_project import DIALOGUE_RE, validate_project
 
 
-FOCUSES = ("scene", "dialogue", "structure", "continuity", "full")
+FOCUSES = ("scene", "dialogue", "structure", "continuity", "full", "audience")
 EXPOSITION_TRIGGERS = (
     "你还记得",
     "你也知道",
@@ -151,6 +153,18 @@ MAJOR_WARNING_CODES = {
     "source-card-mismatch",
     "structure-map-field",
 }
+
+# 方案 B：对白归属一致性（只用字符 bigram，纯标准库）。
+VOICE_MIN_LINES = 15
+VOICE_SIMILARITY_THRESHOLD = 0.75
+VOICE_EVIDENCE_LINES = 2
+_ALNUM_CJK_CATEGORIES = {"Lu", "Ll", "Lt", "Lm", "Lo", "Nd"}
+SPEAKER_NOTE_RE = re.compile(r"[（(][^）)]*[）)]")
+
+# 方案 D：序列中层检查（v2 sequence-outline 表列）。
+SEQUENCE_TABLE_LABELS = ("序列", "故事价值", "进入价值", "序列任务", "递进压力", "退出价值")
+SEQUENCE_PLATEAU_RUN = 3
+SUBPLOT_MIDDLE_THRESHOLD = 30
 
 
 def parse_args() -> argparse.Namespace:
@@ -312,7 +326,7 @@ def review_adapters(
 
 
 def include_warning(focus: str, code: str) -> bool:
-    if focus == "full":
+    if focus in {"full", "audience"}:
         return True
     if focus == "dialogue":
         return code in {
@@ -334,8 +348,276 @@ def include_warning(focus: str, code: str) -> bool:
     return code not in {"structure-map-field", "missing-episode-outline"}
 
 
+def build_blind_read(scenes: list[Path]) -> str:
+    blocks: list[str] = []
+    for path in scenes:
+        try:
+            metadata, body = parse_frontmatter(read_text(path))
+            _, sections = extract_h2_sections(body)
+        except (OSError, ValueError):
+            continue
+        h1 = re.search(r"^# [^\r\n]+$", body, re.MULTILINE)
+        label = h1.group(0)[2:] if h1 else str(metadata.get("id") or path.stem)
+        draft = sections.get("正文", "").strip()
+        if not draft:
+            continue
+        blocks.append(f"## {label}\n\n{draft}")
+    return "\n\n".join(blocks)
+
+
+def _speaker_of(dialogue_line: str) -> str:
+    name = dialogue_line.split("：", 1)[0].strip()
+    return SPEAKER_NOTE_RE.sub("", name).strip()
+
+
+def _voice_chars(text: str) -> list[str]:
+    return [
+        char
+        for char in text
+        if char.strip() and unicodedata.category(char) in _ALNUM_CJK_CATEGORIES
+    ]
+
+
+def _bigrams(text: str) -> list[str]:
+    chars = _voice_chars(text)
+    return [chars[index] + chars[index + 1] for index in range(len(chars) - 1)]
+
+
+def _voice_vector(dialogue_texts: list[str]) -> tuple[dict[str, float], int]:
+    counts: Counter = Counter()
+    for text in dialogue_texts:
+        counts.update(_bigrams(text))
+    total = sum(counts.values())
+    vector = {bigram: count / total for bigram, count in counts.items() if total}
+    return vector, total
+
+
+def _cosine(first: dict[str, float], second: dict[str, float]) -> float:
+    dot = sum(first.get(key, 0.0) * second.get(key, 0.0) for key in set(first) | set(second))
+    first_norm = sum(value * value for value in first.values()) ** 0.5
+    second_norm = sum(value * value for value in second.values()) ** 0.5
+    if first_norm == 0 or second_norm == 0:
+        return 0.0
+    return dot / (first_norm * second_norm)
+
+
+def _voice_evidence(
+    lines: list[str],
+    other_vector: dict[str, float],
+    limit: int,
+) -> list[str]:
+    scored: list[tuple[float, str]] = []
+    for line in lines:
+        bigram_counts = Counter(_bigrams(line))
+        total = sum(bigram_counts.values())
+        if not total:
+            continue
+        score = sum(
+            bigram_counts.get(bigram, 0) * other_vector.get(bigram, 0.0)
+            for bigram in bigram_counts
+        ) / total
+        scored.append((score, line))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    return [line for _, line in scored[:limit]]
+
+
+def review_dialogue_voice(
+    speaker_lines: dict[str, list[str]],
+    findings: dict[str, list[dict[str, str]]],
+) -> None:
+    vectors: dict[str, dict[str, float]] = {}
+    for speaker, lines in speaker_lines.items():
+        if len(lines) < VOICE_MIN_LINES:
+            continue
+        vectors[speaker], _ = _voice_vector(lines)
+    names = sorted(vectors)
+    for index, first in enumerate(names):
+        for second in names[index + 1 :]:
+            similarity = _cosine(vectors[first], vectors[second])
+            if similarity < VOICE_SIMILARITY_THRESHOLD:
+                continue
+            evidence_first = _voice_evidence(
+                speaker_lines[first], vectors[second], VOICE_EVIDENCE_LINES
+            )
+            evidence_second = _voice_evidence(
+                speaker_lines[second], vectors[first], VOICE_EVIDENCE_LINES
+            )
+            add_finding(
+                findings,
+                "minor",
+                "voice-similarity",
+                "对白聚合",
+                (
+                    f"人物「{first}」与「{second}」对白特征高度相似（相似度 "
+                    f"{similarity:.2f}，均 ≥{VOICE_MIN_LINES} 句）；遮住人名可能无法辨认说话者。"
+                    + ("；".join("「%s」%s" % (first, line) for line in evidence_first))
+                    + ("；".join("「%s」%s" % (second, line) for line in evidence_second))
+                ),
+            )
+
+
+def review_sequences(root: Path, findings: dict[str, list[dict[str, str]]]) -> None:
+    path = root / "outline" / "sequence-outline.md"
+    rows: list[dict[str, str]] = []
+    if path.is_file():
+        try:
+            rows = _parse_sequence_rows(read_text(path))
+        except (OSError, ValueError):
+            rows = []
+    if len(rows) >= 2:
+        _review_sequence_table(rows, path, findings)
+    _review_middle_subplot(root, findings)
+
+
+def _review_sequence_table(
+    rows: list[dict[str, str]],
+    path: Path,
+    findings: dict[str, list[dict[str, str]]],
+) -> None:
+    plateau_run = 0
+    previous_value = None
+    for row in rows:
+        value = row.get("故事价值", "").strip()
+        if value and value == previous_value and value != "-":
+            plateau_run += 1
+        else:
+            plateau_run = 1
+        previous_value = value
+        if plateau_run >= SEQUENCE_PLATEAU_RUN:
+            add_finding(
+                findings,
+                "minor",
+                "sequence-value-plateau",
+                str(path),
+                f"序列 {row.get('序列', '?')} 起连续 {plateau_run} 个序列使用同一故事价值「{value}」；序列未升级。",
+            )
+            plateau_run = 1
+
+    for row in rows:
+        escalation = str(row.get("递进压力", "")).strip()
+        if not escalation or escalation == "-":
+            add_finding(
+                findings,
+                "minor",
+                "sequence-no-escalation",
+                str(path),
+                f"序列 {row.get('序列', '?')} 未填写递进压力；确认序列间代价或不可逆性是否上升。",
+            )
+
+    for index, row in enumerate(rows[:-1]):
+        next_row = rows[index + 1]
+        exit_value = str(row.get("退出价值", "")).strip()
+        entry_value = str(next_row.get("进入价值", "")).strip()
+        task = str(row.get("序列任务", "")).strip()
+        next_task = str(next_row.get("序列任务", "")).strip()
+        if (
+            exit_value
+            and exit_value == entry_value
+            and task
+            and task == next_task
+        ):
+            add_finding(
+                findings,
+                "minor",
+                "sequence-recap",
+                str(path),
+                (
+                    f"序列 {row.get('序列', '?')} 与 {next_row.get('序列', '?')} "
+                    "退出/进入价值与任务相同；可能换场景重述同一任务。"
+                ),
+            )
+
+
+def _review_middle_subplot(
+    root: Path, findings: dict[str, list[dict[str, str]]]
+) -> None:
+    scenes = list_scene_files(root, "feature")
+    if len(scenes) < SUBPLOT_MIDDLE_THRESHOLD:
+        return
+    ledger_path = root / "ledger" / "story-ledger.json"
+    if not ledger_path.is_file():
+        return
+    try:
+        ledger = json.loads(ledger_path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return
+    if not isinstance(ledger, dict):
+        return
+    low = len(scenes) // 3
+    high = 2 * len(scenes) // 3
+
+    def scene_number(item: Any) -> int | None:
+        if not isinstance(item, dict):
+            return None
+        match = re.search(r"(\d{1,3})$", str(item.get("scene_id", "")))
+        return int(match.group(1)) if match else None
+
+    middle_count = 0
+    for key in ("relationship_changes", "decision_changes"):
+        entries = ledger.get(key)
+        if not isinstance(entries, list):
+            continue
+        middle_count += sum(
+            1
+            for item in entries
+            if (number := scene_number(item)) is not None and low <= number <= high
+        )
+    if middle_count == 0:
+        add_finding(
+            findings,
+            "minor",
+            "sequence-mid-missing-subplot",
+            str(ledger_path),
+            "总场数超过 30，但中段没有关系/决策变化证据；副线可能在第二幕蒸发。",
+        )
+
+
+def _parse_sequence_rows(text: str) -> list[dict[str, str]]:
+    header_index = None
+    lines = text.splitlines()
+    header = None
+    for index, line in enumerate(lines):
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = split_table_row(line)
+        if any(label in cells for label in ("序列", "故事价值", "递进压力")):
+            header = cells
+            header_index = index
+            break
+    if header is None or header_index is None:
+        raise ValueError("sequence-outline 缺少 v2 序列表头")
+    rows: list[dict[str, str]] = []
+    for line in lines[header_index + 1 :]:
+        if not line.lstrip().startswith("|"):
+            break
+        cells = split_table_row(line)
+        if len(cells) == 1 and not cells[0]:
+            continue
+        if all(not cell or cell == "---" for cell in cells):
+            continue
+        row: dict[str, str] = {}
+        for label in SEQUENCE_TABLE_LABELS:
+            if label in header:
+                index = header.index(label)
+                row[label] = cells[index] if index < len(cells) else ""
+        rows.append(row)
+    return rows
+
+
 def semantic_sections(focus: str) -> list[str]:
     sections: list[str] = []
+    if focus == "audience":
+        sections.extend(
+            [
+                "\n### 观众视角问卷\n\n",
+                "- [ ] 1. 哪一场最无聊？给出可观察理由（无冲突/无价值变化/纯信息/铺垫感）。\n",
+                "- [ ] 2. 观众在哪一刻知道得比人物多或少？是否造成误读。\n",
+                "- [ ] 3. 哪些台词换到任何人物身上都成立（同声同气候选）。\n",
+                "- [ ] 4. 从第几场到第几场连续没有提升代价、范围或不可逆性（序列高原）。\n",
+                "- [ ] 5. 盲读后主角还有可观察的外部目标吗？在哪一场丢失。\n",
+            ]
+        )
+        return sections
     if focus in {"scene", "full"}:
         sections.extend(
             [
@@ -345,6 +627,7 @@ def semantic_sections(focus: str) -> list[str]:
                 "- [ ] 转折来自行动、反制或新证据，而非作者便利。\n",
                 "- [ ] 入场与出场描述同一故事价值的实质变化。\n",
                 "- [ ] 下场压力使后续场景因果上必要。\n",
+                "- [ ] 人物在互不兼容且有代价的方案间做过选择（两难选项），而不是被现实推着走。\n",
             ]
         )
     if focus in {"dialogue", "full"}:
@@ -376,6 +659,7 @@ def semantic_sections(focus: str) -> list[str]:
                 "- [ ] 危机是互不兼容且均有代价的选择。\n",
                 "- [ ] 高潮由人物选择完成，并造成全片最大价值变化。\n",
                 "- [ ] 作者适配器只诊断功能，不替代人物因果。\n",
+                "- [ ] 副线在第二幕穿针引线，中段关系或决策证据持续存在。\n",
             ]
         )
     return sections
@@ -417,10 +701,54 @@ def main() -> int:
     if args.focus in {"structure", "full"} and format_name == "feature":
         review_adapters(root, adapters, findings)
 
+    if args.focus == "audience":
+        blind = build_blind_read(scenes) or "- 暂无正文可读。\n"
+        generated = datetime.now().astimezone().isoformat(timespec="seconds")
+        questionnaire = "".join(semantic_sections("audience"))
+        if args.as_json:
+            payload: dict[str, Any] = {
+                "project_root": str(root),
+                "format": format_name,
+                "focus": "audience",
+                "scene_count": len(scenes),
+                "generated": generated,
+                "blocking_count": len(findings["blocking"]),
+                "blind_read": blind,
+                "questionnaire": questionnaire,
+            }
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return 0
+        report = [
+            "# 盲读审读报告\n\n",
+            f"- 格式：{format_name}\n",
+            f"- 场次数：{len(scenes)}\n",
+            f"- 生成时间：{generated}\n",
+            f"- Blocking：{len(findings['blocking'])}\n",
+            "\n> 本报告剥离设定资料，仅盲读正文；请按问卷以观众视角作答。\n",
+            "\n## 盲读正文\n\n",
+            blind,
+            "\n",
+            *semantic_sections("audience"),
+        ]
+        if not args.compact:
+            report.extend(
+                [
+                    "\n## 编辑结论\n\n",
+                    "- 接受的风险：\n",
+                    "- 必须修复：\n",
+                ]
+            )
+        atomic_write_text(output, "".join(report))
+        print(f"OK: 已生成盲读审读报告：{output}")
+        print(f"SUMMARY: focus=audience scenes={len(scenes)}")
+        return 0
+
     character_ids = load_character_ids(root)
     metrics = Counter()
     sequence_scenes: dict[str, int] = defaultdict(int)
     source_trace_rows: list[str] = []
+    speaker_lines: dict[str, list[str]] = {}
+    dilemma_missing_scenes: list[str] = []
 
     for path in scenes:
         try:
@@ -468,6 +796,7 @@ def main() -> int:
                 dialogue_text = line.split("：", 1)[1]
                 dialogue_chars += len(dialogue_text)
                 if args.focus in {"dialogue", "full"}:
+                    speaker_lines.setdefault(_speaker_of(line), []).append(dialogue_text)
                     if len(dialogue_text) > 120:
                         add_finding(
                             findings,
@@ -508,6 +837,14 @@ def main() -> int:
                 + "。仅作局部审查提示，不自动改写整场。",
             )
 
+        if args.focus in {"scene", "full"}:
+            result_gap = labeled_value(card, "结果落差")
+            dilemma = labeled_value(card, "两难选项")
+            if result_gap not in {"", "-"} and (
+                dilemma in {"", "-"} or unresolved(dilemma)
+            ):
+                dilemma_missing_scenes.append(scene_id)
+
         metrics["scenes"] += 1
         metrics["dialogue_chars"] += dialogue_chars
         metrics["action_chars"] += action_chars
@@ -518,6 +855,22 @@ def main() -> int:
             f"{labeled_value(card, '故事价值') or '缺失'} | "
             f"{len(source_files)} | {labeled_value(card, '下场压力') or '缺失'} |"
         )
+
+    if args.focus in {"scene", "full"} and dilemma_missing_scenes:
+        examples = "、".join(dilemma_missing_scenes[:5])
+        more = f" 等 {len(dilemma_missing_scenes)} 场" if len(dilemma_missing_scenes) > 5 else ""
+        add_finding(
+            findings,
+            "minor",
+            "no-dilemma",
+            str(root / "screenplay" / "scenes"),
+            f"以下场次结果落差已确定但未记录两难选项：{examples}{more}。确认人物是主动选择还是被现实推着走。",
+        )
+
+    if args.focus in {"dialogue", "full"}:
+        review_dialogue_voice(speaker_lines, findings)
+    if args.focus in {"structure", "full"} and format_name == "feature":
+        review_sequences(root, findings)
 
     result: dict[str, Any] = {
         "project_root": str(root),

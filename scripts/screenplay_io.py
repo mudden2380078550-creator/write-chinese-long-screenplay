@@ -58,6 +58,7 @@ V2_OPTIONAL_CARD_FIELDS = (
     "人物语言",
     "故事时间",
     "出场人物",
+    "两难选项",
 )
 UNRESOLVED_MARKERS = ("【待补】", "待补", "TODO", "TBD", "{{")
 
@@ -281,3 +282,11 @@ def strict_int(
     if not minimum <= parsed <= maximum:
         raise ValueError(f"{field} 必须在 {minimum}..{maximum}")
     return parsed
+
+
+def split_table_row(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def join_table_row(cells: list[str]) -> str:
+    return "| " + " | ".join(cells) + " |"

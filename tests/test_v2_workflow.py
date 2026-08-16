@@ -134,6 +134,112 @@ def scene_payload(scene: int) -> dict[str, object]:
     }
 
 
+def distinct_voice_draft() -> str:
+    jia = [
+        "嗯。柜门打开吧。",
+        "啊？别装了。",
+        "行，我等着。",
+        "呢？钥匙呢？",
+        "哦。那你走吧。",
+        "嘿，别碰。",
+        "算了，我自己来。",
+        "喂，站住。",
+        "走吧走吧。",
+        "停。现在。",
+        "别磨蹭。",
+        "真够了。",
+        "你走吧。",
+        "嗯，就这样。",
+        "行了。",
+        "快说。",
+    ]
+    yi = [
+        "请您将检修单交到前台登记。",
+        "恕我直言，您并不属于检修系统。",
+        "按照港务条例，本区需要双重授权。",
+        "这件事我必须向值班室核实。",
+        "您的通行证已经超出有效范围。",
+        "请勿触碰该设备。",
+        "根据记录，您并未获得本层权限。",
+        "我必须请您立即离开。",
+        "这不符合规定。",
+        "我需要向上级报告此事。",
+        "您的请求无法被批准。",
+        "按照规定，我需要核对您的身份。",
+        "此处禁止无关人员停留。",
+        "请您配合登记。",
+        "您是否理解此处的安全要求？",
+        "请立即停步。",
+    ]
+    return "\n\n".join(
+        f"{name}：{line}"
+        for index in range(16)
+        for name, line in (("甲", jia[index]), ("乙", yi[index]))
+    )
+
+
+def clone_voice_draft() -> str:
+    line = "这件事轮不到你来定。"
+    return "\n\n".join(
+        f"{name}：{line}"
+        for index in range(16)
+        for name in ("丙", "丁")
+    )
+
+
+def write_min_scene(root: Path, number: int) -> None:
+    scene_id = f"S{number:03d}"
+    card = "\n".join(
+        [
+            f"场景标头：{number} 地点 夜 内",
+            "来源依据：bible/characters/char-main.md",
+            "人物依据：char-main",
+            "视点人物：char-main",
+            f"场景目标：目标{number}",
+            "故事价值：控制权",
+            f"入场价值：入{number}",
+            f"主冲突：冲突{number}",
+            f"策略：策略{number}",
+            f"预期结果：预期{number}",
+            f"实际结果：实际{number}",
+            f"结果落差：落差{number}",
+            f"场面转折：转折{number}",
+            f"观众更新：更新{number}",
+            f"出场价值：出{number}",
+            f"下场压力：压{number}",
+            "禁止矛盾：无",
+        ]
+    )
+    text = (
+        f"---\n"
+        f"id: {scene_id}\n"
+        f"type: scene\n"
+        f"scene: {number}\n"
+        f"act: 1\n"
+        f"sequence: 1\n"
+        f'title: "T{number}"\n'
+        f'status: draft\n'
+        f'location: "地点"\n'
+        f'time_of_day: "夜"\n'
+        f'interior_exterior: "内"\n'
+        f'characters:\n  - "char-main"\n'
+        f"threads: []\n"
+        f'source_files:\n  - "bible/characters/char-main.md"\n'
+        f"created: 2026-01-01\n"
+        f"updated: 2026-01-01\n"
+        f"---\n\n"
+        f"# {scene_id} T{number}\n\n"
+        f"## 场次卡\n\n"
+        f"{card}\n\n"
+        f"## 正文\n\n"
+        f"△ 动作{number}。\n\n"
+        f"## 连续性\n\n-\n\n## 改稿备注\n\n-\n"
+    )
+    (root / "screenplay" / "scenes" / f"{scene_id}.md").write_text(
+        text, encoding="utf-8", newline="\n"
+    )
+
+
 class V2WorkflowTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
@@ -634,6 +740,7 @@ updated: 2026-01-01
             self.assertIn("schema_version: 2", migrated_project)
             self.assertIn("story_engine: causal-value", migrated_project)
             self.assertIn("【待补】", scene_path.read_text(encoding="utf-8"))
+            self.assertIn("两难选项：-", scene_path.read_text(encoding="utf-8"))
             ledger = json.loads(
                 (root / "ledger" / "story-ledger.json").read_text(encoding="utf-8")
             )
@@ -1053,6 +1160,283 @@ format: feature
             )
             self.assertEqual(rejected.returncode, 2)
             self.assertIn("电影项目", rejected.stderr)
+
+    def test_audience_focus_builds_blind_read_report(self) -> None:
+        with workspace_temp() as temp:
+            root = Path(temp) / "电影"
+            self.init_feature(root)
+            add_character(root)
+            for scene in (1, 2):
+                self.write_scene(root, scene_payload(scene))
+            result = run_script(
+                "self_review.py", "--project-root", str(root), "--focus", "audience"
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            report = (root / "reviews" / "self-review.md").read_text(encoding="utf-8")
+            self.assertIn("盲读审读报告", report)
+            self.assertIn("哪一场最无聊", report)
+            self.assertIn("柜门打开。现在。", report)
+            self.assertNotIn("结构适配器", report)
+
+    def test_dialogue_voice_distinct_speakers_not_flagged(self) -> None:
+        with workspace_temp() as temp:
+            root = Path(temp) / "电影"
+            self.init_feature(root)
+            add_character(root)
+            payload = scene_payload(1)
+            payload["draft"] = "△ 两人隔着柜台对峙。\n\n" + distinct_voice_draft()
+            self.write_scene(root, payload)
+            result = run_script(
+                "self_review.py", "--project-root", str(root), "--focus", "dialogue", "--json"
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            data = json.loads(result.stdout)
+            codes = {item["code"] for item in data["findings"]["minor"]}
+            self.assertNotIn("voice-similarity", codes)
+
+    def test_dialogue_voice_clones_flagged(self) -> None:
+        with workspace_temp() as temp:
+            root = Path(temp) / "电影"
+            self.init_feature(root)
+            add_character(root)
+            payload = scene_payload(1)
+            payload["draft"] = "△ 两人同时开口。\n\n" + clone_voice_draft()
+            self.write_scene(root, payload)
+            result = run_script(
+                "self_review.py", "--project-root", str(root), "--focus", "dialogue", "--json"
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            data = json.loads(result.stdout)
+            codes = {item["code"] for item in data["findings"]["minor"]}
+            self.assertIn("voice-similarity", codes)
+            messages = [
+                item["message"]
+                for item in data["findings"]["minor"]
+                if item["code"] == "voice-similarity"
+            ]
+            self.assertTrue(any("丙" in message and "丁" in message for message in messages))
+
+    def test_propose_style_pairs_generates_candidates_and_is_idempotent(self) -> None:
+        with workspace_temp() as temp:
+            root = Path(temp) / "电影"
+            self.init_feature(root)
+            add_character(root)
+            payload = scene_payload(1)
+            payload["draft"] = "△ 门开了。\n\n顾晴：这意味着你已经输了。\n"
+            self.write_scene(root, payload)
+            style_file = root / "style" / "screenplay-style.md"
+            result = run_script(
+                "propose_style_pairs.py", "--project-root", str(root)
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            text = style_file.read_text(encoding="utf-8")
+            self.assertIn("候选改写对（待确认）", text)
+            self.assertIn("原句：顾晴：这意味着你已经输了。", text)
+            self.assertIn("命中的问题：", text)
+            self.assertIn("改写：", text)
+            rerun = run_script(
+                "propose_style_pairs.py", "--project-root", str(root)
+            )
+            self.assertEqual(rerun.returncode, 0, rerun.stdout + rerun.stderr)
+            self.assertIn("没有新的候选对", rerun.stdout)
+
+    def test_sequence_review_flags_plateau_and_no_escalation(self) -> None:
+        with workspace_temp() as temp:
+            root = Path(temp) / "电影"
+            self.init_feature(root)
+            add_character(root)
+            fill_structure_map(root)
+            path = root / "outline" / "sequence-outline.md"
+            header = (
+                "| 序列 | 幕 | 故事价值 | 进入价值 | 序列任务 | 递进压力 | "
+                "关键选择 | 序列转折 | 退出价值 | 下序列压力 |\n"
+                "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
+            )
+            rows = "\n".join(
+                f"| {n} | 1 | 控制权 | 进{n} | 追查线索 |  |  | 转{n} | 退{n} | 下{n} |"
+                for n in range(1, 4)
+            )
+            path.write_text(header + rows + "\n", encoding="utf-8", newline="\n")
+            result = run_script(
+                "self_review.py", "--project-root", str(root), "--focus", "structure", "--json"
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            data = json.loads(result.stdout)
+            codes = {item["code"] for item in data["findings"]["minor"]}
+            self.assertIn("sequence-value-plateau", codes)
+            self.assertIn("sequence-no-escalation", codes)
+
+    def test_sequence_review_clean_table_not_flagged(self) -> None:
+        with workspace_temp() as temp:
+            root = Path(temp) / "电影"
+            self.init_feature(root)
+            add_character(root)
+            fill_structure_map(root)
+            path = root / "outline" / "sequence-outline.md"
+            header = (
+                "| 序列 | 幕 | 故事价值 | 进入价值 | 序列任务 | 递进压力 | "
+                "关键选择 | 序列转折 | 退出价值 | 下序列压力 |\n"
+                "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
+            )
+            values = ("控制权", "信任", "生存")
+            escalations = ("代价上升", "范围扩大", "不可逆")
+            rows = "\n".join(
+                f"| {n} | {n} | {values[n - 1]} | 进{n} | 任务{n} | {escalations[n - 1]} | "
+                f"选择{n} | 转{n} | 退{n} | 下{n} |"
+                for n in range(1, 4)
+            )
+            path.write_text(header + rows + "\n", encoding="utf-8", newline="\n")
+            result = run_script(
+                "self_review.py", "--project-root", str(root), "--focus", "structure", "--json"
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            data = json.loads(result.stdout)
+            codes = {item["code"] for item in data["findings"]["minor"]}
+            self.assertNotIn("sequence-value-plateau", codes)
+            self.assertNotIn("sequence-no-escalation", codes)
+            self.assertNotIn("sequence-recap", codes)
+
+    def test_sequence_review_flags_missing_middle_subplot(self) -> None:
+        with workspace_temp() as temp:
+            root = Path(temp) / "电影"
+            self.init_feature(root)
+            add_character(root)
+            for number in range(1, 31):
+                write_min_scene(root, number)
+            ledger_path = root / "ledger" / "story-ledger.json"
+            ledger = {
+                "schema_version": 2,
+                "format": "feature",
+                "scene_summaries": [],
+                "state_changes": [],
+                "knowledge_changes": [],
+                "relationship_changes": [],
+                "object_changes": [],
+                "clue_changes": [],
+                "thread_changes": [],
+                "value_changes": [],
+                "decision_changes": [],
+                "audience_evidence": [],
+                "open_questions": [],
+                "uncertainties": [],
+            }
+            ledger_path.write_text(
+                json.dumps(ledger, ensure_ascii=False),
+                encoding="utf-8",
+                newline="\n",
+            )
+            result = run_script(
+                "self_review.py", "--project-root", str(root), "--focus", "structure", "--json"
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            data = json.loads(result.stdout)
+            codes = {item["code"] for item in data["findings"]["minor"]}
+            self.assertIn("sequence-mid-missing-subplot", codes)
+
+            ledger["relationship_changes"].append(
+                {"scene_id": "S015", "from": "甲", "to": "乙", "value": "敌对"}
+            )
+            ledger_path.write_text(
+                json.dumps(ledger, ensure_ascii=False),
+                encoding="utf-8",
+                newline="\n",
+            )
+            result2 = run_script(
+                "self_review.py", "--project-root", str(root), "--focus", "structure", "--json"
+            )
+            data2 = json.loads(result2.stdout)
+            codes2 = {item["code"] for item in data2["findings"]["minor"]}
+            self.assertNotIn("sequence-mid-missing-subplot", codes2)
+
+    def test_dilemma_field_roundtrip_and_advisory(self) -> None:
+        with workspace_temp() as temp:
+            root = Path(temp) / "电影"
+            self.init_feature(root)
+            add_character(root)
+            fill_structure_map(root)
+            payload = scene_payload(1)
+            payload["dilemma_options"] = "交出记录保住自由，或销毁记录陷入追击"
+            self.write_scene(root, payload)
+            scene_text = (
+                root / "screenplay" / "scenes" / "S001.md"
+            ).read_text(encoding="utf-8")
+            self.assertIn("两难选项：交出记录保住自由，或销毁记录陷入追击", scene_text)
+            validate = run_script(
+                "validate_project.py", "--project-root", str(root), "--strict"
+            )
+            self.assertEqual(validate.returncode, 0, validate.stdout + validate.stderr)
+            review = run_script(
+                "self_review.py", "--project-root", str(root), "--focus", "scene", "--json"
+            )
+            data = json.loads(review.stdout)
+            codes = {item["code"] for item in data["findings"]["minor"]}
+            self.assertNotIn("no-dilemma", codes)
+
+            root2 = Path(temp) / "电影2"
+            self.init_feature(root2)
+            add_character(root2)
+            self.write_scene(root2, scene_payload(1))
+            review2 = run_script(
+                "self_review.py", "--project-root", str(root2), "--focus", "scene", "--json"
+            )
+            data2 = json.loads(review2.stdout)
+            codes2 = {item["code"] for item in data2["findings"]["minor"]}
+            self.assertIn("no-dilemma", codes2)
+
+    def test_audience_focus_json_and_compact(self) -> None:
+        with workspace_temp() as temp:
+            root = Path(temp) / "电影"
+            self.init_feature(root)
+            add_character(root)
+            self.write_scene(root, scene_payload(1))
+            report_path = root / "reviews" / "self-review.md"
+
+            as_json = run_script(
+                "self_review.py",
+                "--project-root",
+                str(root),
+                "--focus",
+                "audience",
+                "--json",
+            )
+            self.assertEqual(as_json.returncode, 0, as_json.stdout + as_json.stderr)
+            payload = json.loads(as_json.stdout)
+            self.assertEqual(payload["focus"], "audience")
+            self.assertIn("柜门打开。现在。", payload["blind_read"])
+            self.assertIn("哪一场最无聊", payload["questionnaire"])
+            self.assertFalse(report_path.exists())
+
+            compact = run_script(
+                "self_review.py",
+                "--project-root",
+                str(root),
+                "--focus",
+                "audience",
+                "--compact",
+            )
+            self.assertEqual(compact.returncode, 0, compact.stdout + compact.stderr)
+            report = report_path.read_text(encoding="utf-8")
+            self.assertIn("盲读正文", report)
+            self.assertNotIn("编辑结论", report)
+
+    def test_propose_style_pairs_dry_run_does_not_write(self) -> None:
+        with workspace_temp() as temp:
+            root = Path(temp) / "电影"
+            self.init_feature(root)
+            add_character(root)
+            payload = scene_payload(1)
+            payload["draft"] = "△ 门开了。\n\n顾晴：这意味着你已经输了。\n"
+            self.write_scene(root, payload)
+            style_file = root / "style" / "screenplay-style.md"
+            before = style_file.read_text(encoding="utf-8")
+            result = run_script(
+                "propose_style_pairs.py", "--project-root", str(root), "--dry-run"
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("原句：顾晴：这意味着你已经输了。", result.stdout)
+            self.assertEqual(
+                style_file.read_text(encoding="utf-8"), before
+            )
 
 
 if __name__ == "__main__":

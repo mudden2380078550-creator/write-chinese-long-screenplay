@@ -176,6 +176,7 @@ def main() -> int:
 
         today = date.today().isoformat()
         story_time = str(data.get("story_time", "")).strip()
+        dilemma_options = str(data.get("dilemma_options", "")).strip()
         display_characters = str(
             data.get("display_characters") or "、".join(lists["characters"])
         ).strip()
@@ -241,6 +242,7 @@ updated: {today}
 禁止矛盾：{card_list(lists["forbidden_contradictions"])}
 故事时间：{story_time or "-"}
 出场人物：{display_characters}
+两难选项：{dilemma_options or "-"}
 
 ## 正文
 
