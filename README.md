@@ -2,6 +2,12 @@
 
 [English](README_EN.md)
 
+![License](https://img.shields.io/github/license/mudden2380078550-creator/write-chinese-long-screenplay)
+![Release](https://img.shields.io/github/v/release/mudden2380078550-creator/write-chinese-long-screenplay)
+![Stars](https://img.shields.io/github/stars/mudden2380078550-creator/write-chinese-long-screenplay)
+
+> **让 AI 写 100 场不崩。** 中文长剧本最难的不是文笔，而是 80 场之后的连续性与人物声音——本 Skill 把它变成一套可执行流程：只填两个输入板块，其余由 Skill 内部完成。
+
 面向 **Codex、Claude Code、DeepSeek Harness (dsh)、zcode** 等主流 AI Agent 的中文电影与剧集长剧本写作 Skill。它遵循业界通用的 Agent Skills（`SKILL.md`）开放规范，同一份技能本体可直接被多家 Agent 加载与调用，无需为每家单独改写。
 
 新版只要求两个创作输入：背景设定、人物设定（含人物小传）。其余故事骨架、场景因果、连续性和对白检查由 Skill 内部完成。

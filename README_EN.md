@@ -2,6 +2,12 @@
 
 [中文说明](README.md)
 
+![License](https://img.shields.io/github/license/mudden2380078550-creator/write-chinese-long-screenplay)
+![Release](https://img.shields.io/github/v/release/mudden2380078550-creator/write-chinese-long-screenplay)
+![Stars](https://img.shields.io/github/stars/mudden2380078550-creator/write-chinese-long-screenplay)
+
+> **Make AI write 100 scenes without falling apart.** The hardest part of a long Chinese screenplay is not prose but continuity and character voice past scene 80 — this Skill turns that into an executable process: fill two input blocks, the rest is handled internally.
+
 A Chinese feature-film and episodic-screenplay writing skill for mainstream AI agents, including **Codex, Claude Code, DeepSeek Harness (dsh), zcode**, and others. It follows the industry-standard Agent Skills (`SKILL.md`) open convention, so the same skill body loads and runs across agents without per-agent rewrites.
 
 The streamlined version has only two author-facing inputs: background setting and character setting, including biographies. Story architecture, scene causality, continuity, and dialogue checks are handled internally.
