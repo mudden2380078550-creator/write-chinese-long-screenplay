@@ -1,4 +1,4 @@
-# 中文长剧本创作 Skill v2
+# 中文长篇写作 Skill v0.3
 
 [English](README_EN.md)
 
@@ -230,6 +230,28 @@ python -m unittest discover -s tests -v
 
 自动脚本只能判断确定性问题。人物动机、潜台词、情感效果和高潮质量仍须由模型或编辑结合正文审查。
 
+## v0.3 中文长篇双模式
+
+v0.3 将本 Skill 扩展为“中文长篇写作”总路由，同时保留原有剧本流程：
+
+- **小说模式**：维护全书主线、卷纲、章节正文、故事台账和小说风格契约。
+- **剧本模式**：继续支持电影、剧集、短剧和动画的场次、对白、连续性和导出流程。
+- **作者决策门禁**：AI 最多提出三个互斥候选，必须等待作者锁定唯一方案；只有 `CANON` 决策才能进入正史。
+
+初始化小说项目：
+
+```powershell
+python "<skill-dir>\scripts\init_project.py" `
+  --project-root "D:\novels\my-novel" `
+  --title "书名" `
+  --mode novel
+
+python "<skill-dir>\scripts\validate_novel_project.py" `
+  --project-root "D:\novels\my-novel" `
+  --strict
+```
+
+初始化剧本项目仍使用原参数；不写 `--mode` 时默认 `screenplay`。小说模板和决策门禁说明见 `assets/novel-project-template/`、`references/novel-mode.md` 和 `references/decision-gates.md`。
 ## 版权与方法来源
 
 本 Skill 的概念映射参考了悉德·菲尔德的电影剧本结构方法、罗伯特·麦基的故事与对白方法，以及布莱克·斯奈德的电影编剧方法；去 AI 味检查分类参考了 [Humanizer-zh](https://github.com/op7418/Humanizer-zh) 公开的中文问题清单。仓库只包含原创的术语矩阵、工作流、模板和校验代码，不包含书籍文件、长篇原文或可替代原书的章节摘要。
