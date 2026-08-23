@@ -1,7 +1,7 @@
 {
   "name": "write-chinese-long-screenplay",
-  "version": "0.2.0",
-  "description": "中文电影与剧集长剧本写作 skill（SKILL.md）——双输入板块 + 因果—价值内核，保证长篇幅连续性与人物声音；兼容 Codex / Claude Code / DeepSeek Harness (dsh) / zcode",
+  "version": "0.3.0",
+  "description": "中文长篇写作 skill：小说与电影/剧集长剧本双模式，含作者决策门禁、连续性台账与严格校验；兼容 Codex / Claude Code / DeepSeek Harness (dsh) / zcode",
   "type": "module",
   "files": [
     "SKILL.md",
@@ -30,6 +30,7 @@
     "dsh",
     "skill",
     "screenwriting",
+    "novel-writing",
     "claude-code",
     "codex",
     "chinese"
