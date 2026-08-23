@@ -1,27 +1,18 @@
 # Changelog
 
-本项目采用 [语义化版本](https://semver.org/lang/zh-CN/)。所有显著变更都会记录在此文件。
+本项目采用[语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [v0.2.0] - 2026-08-16
+## [v0.3.0] - 2026-08-23
 
 ### 新增
 
-- **盲读审读报告**（`self_review.py --focus audience`）：剥离设定资料、仅盲读正文 + 观众视角问卷，作为一等产出。
-- **对白归属一致性检查**：按角色聚合对白，用字符 bigram 余弦相似度提示「同声同气」（≥15 句且相似度 >0.75 时提示，附证据台词）。
-- **风格校准候选对生成**（`scripts/propose_style_pairs.py`）：批量扫描命中 24 类中文问题清单的对白，生成「原句 + 命中问题」半成品，供确认后回填 `style/screenplay-style.md`。
-- **中层序列检查**：序列价值轴高原、递进压力缺失、衔接重述、中段副线缺失四项 advisory 提示。
-- **两难时刻审计**：可选字段 `两难选项` 贯穿写入、迁移、上下文构建与自审；有结果落差但未记录两难时提示。
+- 将 Skill 升级为中文长篇写作总路由，支持小说模式与剧本模式。
+- 新增作者决策门禁：探索、待确认、唯一正史和废案四种状态。
+- 新增 `references/novel-mode.md` 与 `assets/novel-project-template/`。
+- 新增 `scripts/validate_novel_project.py`，检查小说项目结构、决策状态和正史中的未决方案残留。
+- `scripts/init_project.py` 新增 `--mode novel`。
 
-### 变更
+### 兼容性
 
-- README 面向多 Agent（Codex / Claude Code / DeepSeek Harness / zcode 等），新增设计基础说明与各 Agent 安装路径。
-- `--focus audience` 支持 `--json` 与 `--compact`。
-
-### 修复
-
-- 序列解析跳过 `| --- |` 分隔行；副线检查不再被序列表行数门控。
-- `no-dilemma` 提示按项目聚合，避免逐场刷屏。
-
-## [未发布] 早期迭代
-
-- v2 因果—价值内核、双输入板块、连续性台账、分层自审与迁移工具（见 `git log`）。
+- 默认模式仍为 `screenplay`，既有电影、剧集、短剧和动画项目初始化参数保持兼容。
+- 原有剧本场次写入、严格校验、自然中文审查和编译流程保持不变。
