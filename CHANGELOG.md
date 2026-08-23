@@ -2,6 +2,14 @@
 
 本项目采用[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [v0.3.1] - 2026-08-23
+
+### 修复
+
+- 新增无依赖的 dsh Cordis entry，按官方 `ctx.skills` provider 注册根目录 `SKILL.md`。
+- 补齐 `package.json` 的 `main` / `exports`，避免 bundle patch 解析到自身时触发 `ERR_MODULE_NOT_FOUND`。
+- 更新 dsh 安装说明，明确使用 `dsh plugin --profile web add` 并重启 Web profile。
+
 ## [v0.3.0] - 2026-08-23
 
 ### 新增
