@@ -11,19 +11,21 @@ from screenplay_io import atomic_write_text, read_text
 
 
 FORMATS = ("feature", "series", "short-drama", "animation")
+MODES = ("screenplay", "novel")
 ADAPTERS = ("field", "mckee", "save-the-cat")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="初始化中文长剧本 Markdown 工程")
+    parser = argparse.ArgumentParser(description="初始化中文长篇小说或长剧本 Markdown 工程")
     parser.add_argument("--project-root", required=True, type=Path)
     parser.add_argument("--title", required=True)
+    parser.add_argument("--mode", choices=MODES, default="screenplay")
     parser.add_argument("--format", choices=FORMATS, default="series")
     parser.add_argument(
         "--adapter",
         action="append",
         choices=ADAPTERS,
-        help="电影结构适配器；可重复。剧集项目不接受该参数",
+        help="电影结构适配器；可重复。剧集和小说项目不接受该参数",
     )
     return parser.parse_args()
 
@@ -33,7 +35,10 @@ def main() -> int:
     if not args.title.strip() or "\n" in args.title or "\r" in args.title:
         print("ERROR: 项目名不能为空或包含换行。", file=sys.stderr)
         return 2
-    if args.format != "feature" and args.adapter:
+    if args.mode == "novel" and args.adapter:
+        print("ERROR: 结构适配器仅用于剧本电影项目。", file=sys.stderr)
+        return 2
+    if args.mode == "screenplay" and args.format != "feature" and args.adapter:
         print("ERROR: 结构适配器仅用于电影项目。", file=sys.stderr)
         return 2
 
@@ -46,11 +51,16 @@ def main() -> int:
                 raise ValueError(f"目标目录非空，拒绝覆盖：{project_root}")
 
         skill_dir = Path(__file__).resolve().parent.parent
-        template_name = (
-            "feature-project-template"
-            if args.format == "feature"
-            else "project-template"
-        )
+        if args.mode == "novel":
+            template_name = "novel-project-template"
+            format_name = "novel"
+        else:
+            template_name = (
+                "feature-project-template"
+                if args.format == "feature"
+                else "project-template"
+            )
+            format_name = args.format
         template_root = skill_dir / "assets" / template_name
         if not template_root.is_dir():
             raise ValueError(f"找不到项目模板：{template_root}")
@@ -65,7 +75,8 @@ def main() -> int:
             .replace("\\", "\\\\")
             .replace('"', '\\"'),
             "{{TITLE_JSON}}": json.dumps(args.title.strip(), ensure_ascii=False)[1:-1],
-            "{{FORMAT}}": args.format,
+            "{{FORMAT}}": format_name,
+            "{{MODE}}": args.mode,
             "{{DATE}}": today,
         }
         for path in project_root.rglob("*"):
@@ -85,8 +96,9 @@ def main() -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
-    print(f"OK: 已初始化中文长剧本项目：{project_root}")
-    print(f"格式：{args.format}")
+    print(f"OK: 已初始化中文长篇项目：{project_root}")
+    print(f"模式：{args.mode}")
+    print(f"格式：{format_name}")
     if args.adapter:
         print(f"结构适配器：{', '.join(dict.fromkeys(args.adapter))}")
     return 0
@@ -94,3 +106,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
