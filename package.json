@@ -1,9 +1,16 @@
 {
   "name": "write-chinese-long-screenplay",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "中文长篇写作 skill：小说与电影/剧集长剧本双模式，含作者决策门禁、连续性台账与严格校验；兼容 Codex / Claude Code / DeepSeek Harness (dsh) / zcode",
   "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
   "files": [
+    "index.js",
     "SKILL.md",
     "README.md",
     "README_EN.md",
