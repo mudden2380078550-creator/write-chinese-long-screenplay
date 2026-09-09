@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "updated": "{{DATE}}",
+  "items": [
+    {
+      "id": "directive-harness-first",
+      "name": "harness 优先",
+      "status": "active",
+      "author_note": "生成场次或章节前必须读取 harness 状态；不得只依赖聊天上下文记忆。",
+      "generation_policy": {
+        "allow_use": true,
+        "priority": "hard"
+      }
+    }
+  ]
+}

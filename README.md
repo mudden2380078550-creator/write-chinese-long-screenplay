@@ -1,265 +1,93 @@
-# 中文长篇写作 Skill v0.3
+# Narrative Harness 0.4.0
 
-[English](README_EN.md)
+面向中文小说与剧本的本地创作控制工具。AI负责理解与创作，本程序保存作品状态、构建上下文、检查候选并共同提交正文与状态。保留 `write-chinese-long-screenplay` 作为Codex Skill入口。
 
-![License](https://img.shields.io/github/license/mudden2380078550-creator/write-chinese-long-screenplay)
-![Release](https://img.shields.io/github/v/release/mudden2380078550-creator/write-chinese-long-screenplay)
-![Stars](https://img.shields.io/github/stars/mudden2380078550-creator/write-chinese-long-screenplay)
+工具源码、安装副本和作品目录彼此独立。本项目不会自动调用模型、同步云端或发布作品。
 
-> **让 AI 写 100 场不崩。** 中文长剧本最难的不是文笔，而是 80 场之后的连续性与人物声音——本 Skill 把它变成一套可执行流程：只填两个输入板块，其余由 Skill 内部完成。
+## 使用
 
-面向 **Codex、Claude Code、DeepSeek Harness (dsh)、zcode** 等主流 AI Agent 的中文电影与剧集长剧本写作 Skill。它遵循业界通用的 Agent Skills（`SKILL.md`）开放规范，同一份技能本体可直接被多家 Agent 加载与调用，无需为每家单独改写。
-
-新版只要求两个创作输入：背景设定、人物设定（含人物小传）。其余故事骨架、场景因果、连续性和对白检查由 Skill 内部完成。
-
-## 设计基础（基于什么做的）
-
-本 Skill 建立在明确的组合之上，这也是它能跨 Agent 工作的原因：
-
-- **技术基础**：采用 Agent Skills（`SKILL.md`）开放规范——`name`/`description` 驱动路由，`references/`、`scripts/`、`assets/` 提供结构化资源。Codex、Claude Code、dsh 等均原生支持该规范，因此技能本体不需要为各家 Agent 单独适配。内部脚本全部使用 **Python 标准库**，无第三方依赖，任何能运行 Python 3.10+ 的环境都能执行确定性校验。
-- **剧作方法**：概念映射参考悉德·菲尔德（Syd Field）的电影剧本结构方法、罗伯特·麦基（Robert McKee）的故事与对白方法、布莱克·斯奈德（Blake Snyder）的电影编剧方法。这些理论被压缩为**内部诊断框架**，用户不需要先学习菲尔德、麦基或救猫咪的术语。
-- **中文校准**：去 AI 味检查借用 [Humanizer-zh](https://github.com/op7418/Humanizer-zh) 公开的 24 类中文问题分类，改写为剧本场景检查清单；不引入其改写提示词、检测器、分数、声音模板或代码。
-
-更精确的版权与方法来源见文末「版权与方法来源」。
-
-## 支持哪些 Agent
-
-| Agent | 技能目录 | 说明 |
-| --- | --- | --- |
-| Codex | `~/.codex/skills/write-chinese-long-screenplay/` | 原生支持 `SKILL.md` |
-| Claude Code | `~/.claude/skills/write-chinese-long-screenplay/` | 原生支持 `SKILL.md` |
-| DeepSeek Harness (dsh) | `~/.dsh/skills/write-chinese-long-screenplay/` | dsh 通过 skill-filesystem 插件扫描该目录，并把技能作为可调用工具注入模型目录 |
-| zcode 及其余遵循 Agent Skills 规范的 Agent | 按各自文档中的 skills 目录放置 | 同一份 `SKILL.md` 直接可用 |
-
-## 只保留两个创作板块
-
-### 1. 背景设定
-
-填写时代、地点、制度、历史余波、世界规则、资源、限制、代价、认知差异和不可改变的事实。每条设定都要能改变人物选择或产生可见后果。
-
-文件：`background/story-background.md`
-
-### 2. 人物设定
-
-填写人物小传、欲望、需要、错误信念、保护策略、资源、限制、秘密、知识边界、关系交换、压力下的行为、语言习惯和最终选择。
-
-文件：`bible/characters/*.md`
-
-电影圣经、结构图、序列、场次卡、台账和审查报告仍会生成，但它们是内部工作资料，不是要求用户学习的第三、第四、第五个创作板块。
-
-## 中文 AI 味与校准
-
-当前版本把“去 AI 味”作为独立检查：只借用 [Humanizer-zh](https://github.com/op7418/Humanizer-zh) 公开的中文问题分类，并改写为剧本场景清单。它不引入对方的改写提示词、检测器、分数、声音模板或代码；自动脚本只提示高确定性模式，不把检测分数当作目标。
-
-清单覆盖四组共 24 类问题：内容拔高与广告腔、AI 高频语言与假对称、格式装饰泄漏、协作元话语与空泛结论。剧本还会区分动作描写、对白和格式，避免把正常的重复、破折号、引号或“是”误判为问题。完整清单见 `references/natural-chinese.md`。
-
-最有效的校准材料不是“自然一点”，而是用户自己的改写对照：
+本次重构位于 [`refactor/harness`](https://github.com/mudden2380078550-creator/write-chinese-long-screenplay/tree/refactor/harness) 分支。旧版 `main` 与历史 Release 保留；下载新版请使用 [v0.4.0 Release](https://github.com/mudden2380078550-creator/write-chinese-long-screenplay/releases/tag/v0.4.0)，或明确克隆本分支：
 
 ```text
-原句：
-不自然的原因：是太完整、太解释、太像谁，还是不符合人物关系？
-改写：
-希望保留的效果：
+git clone --branch refactor/harness https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git narrative-harness
+cd narrative-harness
 ```
 
-将 5–20 组这样的对照放进 `style/screenplay-style.md` 的“真实中文样本”区。它会校准当前项目的语气，但不会永久训练基础模型；永久改变模型需要另行制作数据集和微调。真实片段只用于学习句法、节奏和人物差异，不要提交有版权的整段文本。
-
-## 内部写作内核
-
-统一内核：
+需要Python 3.10+。源码直接运行，无第三方运行依赖：
 
 ```text
-主题命题 → 主角欲望 → 激励性扰动 → 递进复杂化
-→ 不可回头点 → 危机选择 → 高潮行动 → 结局价值与余波
+python scripts/harness.py project new --root ../my-book --title 我的小说 --format novel
+python scripts/harness.py import stage --project ../my-book --source ../资料包.md
 ```
 
-单场内核：
+之后让AI读取归档资料并填写 `proposals/<source-id>.json` 中的实体、政策和章节大纲，再执行import apply。用户不必手填JSON；格式由宿主AI处理。程序只做可靠归档，不假装能独立理解自由文本。
+
+安装为命令：
 
 ```text
-来源 → 视点/目标 → 冲突/策略 → 预期结果 → 实际结果
-→ 结果落差 → 转折 → 价值变化 → 下场压力
+python -m pip install .
+harness --help
 ```
 
-作者理论只作为内部诊断资料，不要求用户选择适配器、填写十五节拍或用百分比安排场次。核心判断始终是人物在背景限制下的选择、反制、代价和变化。
+安装到Codex（destination使用你自己的Skill目录）：
 
-中文正文会额外执行局部去模板化审查，重点处理说明性对白、抽象心理、同声同气、过度工整和金句式收束；没有命中问题的句子不为追求变化而改写。详见 `references/natural-chinese.md`。
-
-## 要求
-
-- 支持 `SKILL.md` 的 Agent 环境（Codex / Claude Code / dsh / zcode 等）
-- Python 3.10+
-- Git（克隆安装时）
-
-脚本只使用 Python 标准库。
-
-## 安装
-
-克隆仓库：
-
-```bash
-git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git
+```text
+python scripts/install_skill.py --destination <skills目录>/write-chinese-long-screenplay --backup-root <备份目录>
 ```
 
-把技能目录放入对应 Agent 的 skills 目录（Windows PowerShell 用 `Copy-Item -Recurse`，macOS/Linux 用 `cp -r`）：
+安装器先验证独立启动器，再备份已有目录，复制修订后的兼容脚本、Skill及核心运行包。备份路径在输出JSON里。安装副本能移动到另一台有Python的设备，不引用本机源码路径。
 
-| Agent | 命令示例（macOS / Linux） |
+**不要再把整个工具仓库直接复制到 skills 目录。** 请运行上面的安装器。安装后可以对AI说：“使用 write-chinese-long-screenplay，新建一本系统流小说，项目放在工具目录之外；这是资料包，请整理人物、技能、作者控制和大纲，列出仍需我确认的问题。” AI负责填提案，未解决的关键问题仍需审定，不能保证任意宿主都会正确执行。
+
+升级前备份作品和旧Skill。v2作品使用 `project migrate --help` 查看复制迁移入口，审定迁移报告后再续写，不直接覆盖旧作品。内部开发版0.3.0的锁文件与0.4.0不同，保留原工具处理旧开发项目；不要手工修改版本锁绕过检查。
+
+工具Git仓库只管理工具；每本作品单独建目录、单独选择私有仓库或其他同步方式。本项目没有自动同步功能，同一本作品不要在多个设备同时写入。
+
+完整输入示例见 [工作流协议](integrations/write-chinese-long-screenplay/references/harness-workflow.md)。示范资料见 [examples/package.json](examples/package.json)。
+
+## 主要命令
+
+| 命令 | 用途 |
 | --- | --- |
-| Codex | `cp -r write-chinese-long-screenplay ~/.codex/skills/` |
-| Claude Code | `cp -r write-chinese-long-screenplay ~/.claude/skills/` |
-| dsh | `cp -r write-chinese-long-screenplay ~/.dsh/skills/` |
-| zcode 等 | 按各自文档的 skills 目录放置 |
+| project new/configure/doctor/recover | 创建、作者配置、完整性检查、恢复中断事务 |
+| import stage/apply | 原资料归档、接受审定后的结构化资料 |
+| unit prepare/submit/check/accept | 准备上下文、提交候选、检查、接受正文与状态 |
+| unit revalidate | 按新政策核对既有章节，不重扣资源 |
+| state show --before-unit | 查询某章写前状态 |
+| revision impact/fork | 影响范围、从写前状态创建独立修订作品 |
+| project migrate | 复制迁移旧v2项目，保留原始文件与历史未知标记 |
+| export | 只导出已接受且无需重新审查的正文 |
 
-也可以直接克隆到目标目录，例如：
+每个命令可加--help。--budget以字符为单位，不冒充准确token数。业务输出为JSON；0成功，1待审/阻断，2参数/环境错误，3冲突，4需恢复。
 
-```powershell
-git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git `
-  "$HOME\.codex\skills\write-chinese-long-screenplay"
+## 作品格式与控制
+
+- `project.json` 是项目清单，`harness.lock.json` 锁定工具/数据版本。
+- `canon/entities/` 保存技能、资源、物品、人物等正式实体；`canon/policies/` 独立保存作者规则。
+- `outline/` 保存独立章节任务书，`manuscript/` 保存已接受正文。
+- `canon/history/` 保存初始状态、接受事件及对应候选和检查报告，可重放核对当前状态。
+- `runs/` 保存本轮上下文、候选与报告，`sources/` 保留原件，`proposals/` 保存导入提案。
+- `.harness/` 是本机锁和中断恢复日志，`exports/` 是可再生输出。
+
+Skill不替代程序控制：未审候选、资源不足、过期修订、篡改的报告和未完成事务均不能按正常命令直接接受。普通候选不能修改作者政策。能力消耗由已声明的uses应用；物品是否消耗通过明确state_changes表达。
+
+## 历史、迁移与边界
+
+新稿可以查询历史写前状态。最新章可修订而不重复消耗；有后续已接受章节时采用revision fork，保留原作品。如果历史视图不能满足当前章纲/政策引用，fork明确拒绝，需先审定修订基础。
+
+旧v2迁移保留原件字节并抽取正文。旧harness条目先列为未审定，不能将当前数据伪装成旧章节的写前状态。迁移属于有报告的转换，不是自动补全历史。
+
+确定性验证由标准库中的显式字段与领域校验实现；交换协议Schema位于 `src/narrative_harness/schemas/`。不支持任意JSON Schema执行。语义检查由宿主AI或作者提供有依据的审查记录，程序并不能证明小说的全部语义和文学质量。
+
+第一版支持本地单写者。Windows使用文件字节锁，POSIX使用flock；中断通过日志恢复。它不提供跨设备分布式锁，也不声称多文件replace天然原子。同步前确保doctor通过，同步后再次检查；本轮只在Windows实测，跨平台CI已配置但需仓库运行后才能声称通过。
+
+## 开发与验证
+
+```text
+python -B -m unittest discover -s tests -v
+python -B -m unittest discover -s legacy/tests -v
 ```
 
-DeepSeek Harness 用户也可以直接以 bundle 安装（包内含 Cordis entry，会把根目录 `SKILL.md` 注册到 dsh 技能目录）：
+测试覆盖真实CLI、独立安装、状态消耗、政策、上下文预算、历史修订、手改检测、锁、逐文件故障恢复和资料保真。测试中的正文是固定验证样本，不代表模型生成质量评估。
 
-```sh
-dsh plugin --profile web add "github:mudden2380078550-creator/write-chinese-long-screenplay"
-```
-
-安装后重启 `dsh web`；新会话中应能看到 `write-chinese-long-screenplay`。
-
-## 初始化 v2 项目
-
-```powershell
-python "<skill-dir>\scripts\init_project.py" `
-  --project-root "D:\screenplays\my-feature" `
-  --title "片名" `
-  --format feature
-```
-
-初始化后只需填写背景设定和人物设定；作者理论适配器属于兼容层，默认不启用。
-
-项目契约：
-
-```yaml
-schema_version: 2
-story_engine: causal-value
-structure_adapters: []
-```
-
-## 迁移旧项目
-
-先预览：
-
-```powershell
-python "<skill-dir>\scripts\migrate_project.py" `
-  --project-root "<project-root>" `
-  --report "<project-root>\reviews\v2-migration.md"
-```
-
-确认后应用：
-
-```powershell
-python "<skill-dir>\scripts\migrate_project.py" `
-  --project-root "<project-root>" `
-  --apply
-```
-
-应用前会把改写文件备份到项目 `backups/`，并把连续性台账升级到 schema v2。人物动机、故事价值、冲突和结果落差不会被自动猜测，未解决字段会保持严格校验阻断。
-
-迁移退出码 `0` 表示应用后严格校验通过；`1` 表示报告已生成或迁移已应用，但仍有阻断项。
-
-## 上下文与自审
-
-上下文档位：
-
-| 档位 | 默认预算 |
-| --- | ---: |
-| `scene-light` | 约 4,000 tokens |
-| `scene` | 约 7,000 tokens |
-| `scene-complex` | 约 12,000 tokens |
-| `batch` | 约 16,000 tokens |
-| `sequence` | 约 4,200 tokens |
-| `dialogue-review` | 约 3,200 tokens |
-| `structure-review` | 约 6,000 tokens |
-| `full-review` | 约 8,000 tokens |
-
-`review` 保留为 `full-review` 的兼容别名。
-
-```powershell
-python "<skill-dir>\scripts\build_context.py" `
-  --project-root "<project-root>" `
-  --scene 18 `
-  --profile scene `
-  --query "人物 地点 线索 规则" `
-  --source-file "bible/characters/char-id.md" `
-  --output "<临时目录>\scene-context.md"
-
-python "<skill-dir>\scripts\build_context.py" `
-  --project-root "<project-root>" `
-  --scene-from 18 `
-  --scene-to 23 `
-  --profile batch `
-  --query "本批人物 地点 线索 规则 序列目标" `
-  --output "<临时目录>\S018-S023-batch-context.md"
-
-python "<skill-dir>\scripts\self_review.py" `
-  --project-root "<project-root>" `
-  --focus dialogue `
-  --strict `
-  --output "<project-root>\reviews\dialogue-review.md"
-```
-
-`--focus` 可取 `scene`、`dialogue`、`structure`、`continuity`、`full`。
-
-`scene-light` 用于过场和低设定负荷场；`scene` 是普通正文默认档；`scene-complex` 用于群戏、重大揭示和高潮。`batch` 只构建连续 1–8 场的共享上下文；每写完一场仍需更新台账，再为下一场生成局部上下文。每约30场先做严格校验，再按场景、对白、连续性和结构分层审查，不把全部正文无差别塞入一次模型上下文。
-
-上下文输出默认拒绝覆盖已有文件；确认替换临时上下文时添加 `--force`。
-
-## 校验、编译和测试
-
-```powershell
-python "<skill-dir>\scripts\validate_project.py" `
-  --project-root "<project-root>" `
-  --strict
-
-python "<skill-dir>\scripts\compile_screenplay.py" `
-  --project-root "<project-root>" `
-  --output "<project-root>\exports\screenplay.md"
-
-python -m unittest discover -s tests -v
-```
-
-编译器会再次执行严格校验；存在 schema、来源或必填场次问题时拒绝导出。
-
-自动脚本只能判断确定性问题。人物动机、潜台词、情感效果和高潮质量仍须由模型或编辑结合正文审查。
-
-## v0.3 中文长篇双模式
-
-v0.3 将本 Skill 扩展为“中文长篇写作”总路由，同时保留原有剧本流程：
-
-- **小说模式**：维护全书主线、卷纲、章节正文、故事台账和小说风格契约。
-- **剧本模式**：继续支持电影、剧集、短剧和动画的场次、对白、连续性和导出流程。
-- **作者决策门禁**：AI 最多提出三个互斥候选，必须等待作者锁定唯一方案；只有 `CANON` 决策才能进入正史。
-
-初始化小说项目：
-
-```powershell
-python "<skill-dir>\scripts\init_project.py" `
-  --project-root "D:\novels\my-novel" `
-  --title "书名" `
-  --mode novel
-
-python "<skill-dir>\scripts\validate_novel_project.py" `
-  --project-root "D:\novels\my-novel" `
-  --strict
-```
-
-初始化剧本项目仍使用原参数；不写 `--mode` 时默认 `screenplay`。
-
-本仓库的 dsh bundle 入口是 `index.js`，它只注册 Skill，不额外注册工具；`cordis.patch.yml` 与 `package.json#main` 必须一起保留。小说模板和决策门禁说明见 `assets/novel-project-template/`、`references/novel-mode.md` 和 `references/decision-gates.md`。
-## 版权与方法来源
-
-本 Skill 的概念映射参考了悉德·菲尔德的电影剧本结构方法、罗伯特·麦基的故事与对白方法，以及布莱克·斯奈德的电影编剧方法；去 AI 味检查分类参考了 [Humanizer-zh](https://github.com/op7418/Humanizer-zh) 公开的中文问题清单。仓库只包含原创的术语矩阵、工作流、模板和校验代码，不包含书籍文件、长篇原文或可替代原书的章节摘要。
-
-## 许可证
-
-Copyright © 2026 kobayashikayoubi。
-
-本项目采用 [GNU General Public License v3.0 only](LICENSE)。
+原剧本模板、方法与修订后的v2脚本在 `legacy/`，v2与v3入口不可混用。原dsh的根目录插件布局不再是本版本入口，未验证的宿主不能视为即装即用。版本变化见 [CHANGELOG.md](CHANGELOG.md)。项目延续 GPL-3.0-only，完整文本见 [LICENSE](LICENSE)，来源及修改记录见 [NOTICE.md](NOTICE.md)。英文概览见 [README_EN.md](README_EN.md)。

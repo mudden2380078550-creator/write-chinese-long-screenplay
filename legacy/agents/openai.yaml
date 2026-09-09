@@ -1,0 +1,4 @@
+interface:
+  display_name: "中文长篇叙事 Harness"
+  short_description: "用背景、人物和 harness 状态库控制中文长篇叙事、系统文、游戏文或剧本"
+  default_prompt: "使用 $write-chinese-long-screenplay 根据背景设定、人物设定和 harness 状态库规划、创作或审查中文长篇叙事。"

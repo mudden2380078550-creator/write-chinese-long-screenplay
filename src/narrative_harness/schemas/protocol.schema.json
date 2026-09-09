@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:narrative-harness:protocol:3",
+  "title": "Narrative Harness v3 exchange objects",
+  "description": "Transport shapes; references, finite resources, revisions and history are additionally checked by the runtime.",
+  "oneOf": [
+    {"$ref": "#/$defs/entity"},
+    {"$ref": "#/$defs/policy"},
+    {"$ref": "#/$defs/unit"},
+    {"$ref": "#/$defs/candidate"},
+    {"$ref": "#/$defs/review"}
+  ],
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,95}$"},
+    "ids": {"type": "array", "items": {"$ref": "#/$defs/id"}, "uniqueItems": true},
+    "entity": {
+      "type": "object", "required": ["id", "type", "name"], "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "type": {"enum": ["character", "resource", "ability", "item", "quest", "world-rule", "faction", "fact", "progression"]},
+        "name": {"type": "string", "minLength": 1},
+        "aliases": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "owner_id": {"$ref": "#/$defs/id"},
+        "lifecycle": {"enum": ["active", "acquired", "locked", "lost", "consumed", "completed", "failed", "retired", "unknown"]},
+        "description": {"type": "string"},
+        "mechanics": {}, "limits": {}, "attributes": {}, "knowledge": {"type": "object"},
+        "provenance": {"type": "array"}, "author_note": {"type": "string"}, "extensions": {"type": "object"},
+        "quantity": {"type": "number", "minimum": 0},
+        "prerequisites": {"$ref": "#/$defs/ids"},
+        "cost": {"type": "object", "required": ["resource_id", "amount"], "additionalProperties": false,
+          "properties": {"resource_id": {"$ref": "#/$defs/id"}, "amount": {"type": "number", "minimum": 0}}},
+        "cooldown": {"type": "object", "required": ["duration", "unit"], "additionalProperties": false,
+          "properties": {"duration": {"type": "number", "minimum": 0}, "unit": {"const": "second"}, "ready_at": {"type": "number", "minimum": 0}}}
+      }
+    },
+    "policy": {
+      "type": "object", "required": ["id", "strength", "effect", "author_note"], "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "target_ids": {"$ref": "#/$defs/ids"},
+        "strength": {"enum": ["hard", "soft"]}, "author_note": {"type": "string", "minLength": 1},
+        "effect": {"type": "object", "additionalProperties": false, "properties": {
+          "allow_use": {"type": "boolean"}, "allow_mention": {"type": "boolean"},
+          "forbidden_usage_patterns": {"type": "array", "items": {"type": "string", "minLength": 1}}}},
+        "scope": {"type": "object", "additionalProperties": false, "properties": {
+          "from_unit_id": {"$ref": "#/$defs/id"}, "to_unit_id": {"$ref": "#/$defs/id"}}},
+        "provenance": {"type": "array"}, "extensions": {"type": "object"}
+      }
+    },
+    "unit": {
+      "type": "object", "required": ["id", "title", "outline"], "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "title": {"type": "string", "minLength": 1},
+        "outline": {"type": "string", "minLength": 1}, "entity_ids": {"$ref": "#/$defs/ids"},
+        "pov_id": {"$ref": "#/$defs/id"}, "thread_ids": {"$ref": "#/$defs/ids"},
+        "story_time": {"type": "number", "minimum": 0}, "extensions": {"type": "object"}
+      }
+    },
+    "candidate": {
+      "type": "object", "required": ["run_id", "base_revision", "draft", "uses", "state_changes", "new_facts"], "additionalProperties": false,
+      "properties": {
+        "run_id": {"$ref": "#/$defs/id"}, "base_revision": {"$ref": "#/$defs/id"},
+        "draft": {"type": "string", "minLength": 1},
+        "uses": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+          "required": ["entity_id", "evidence"], "properties": {"entity_id": {"$ref": "#/$defs/id"}, "evidence": {"type": "string", "minLength": 1}, "count": {"type": "integer", "minimum": 1}}}},
+        "state_changes": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+          "required": ["id", "before", "after"], "properties": {"id": {"$ref": "#/$defs/id"}, "before": {"$ref": "#/$defs/entity"}, "after": {"$ref": "#/$defs/entity"}}}},
+        "new_facts": {"type": "array", "items": {"$ref": "#/$defs/entity"}}, "uncertainties": {"type": "array"}
+      }
+    },
+    "review": {"type": "object", "required": ["verdict", "notes"], "additionalProperties": false,
+      "properties": {"verdict": {"enum": ["pass", "fail"]}, "notes": {"type": "string", "minLength": 1}}}
+  }
+}

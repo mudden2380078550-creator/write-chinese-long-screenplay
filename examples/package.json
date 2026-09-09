@@ -1,0 +1,15 @@
+{
+  "entities": [
+    {"id": "hero", "type": "character", "name": "林澈", "description": "寻找失踪姐姐；宁愿吃亏也不丢下同伴。"},
+    {"id": "spirit", "type": "resource", "name": "灵力", "owner_id": "hero", "quantity": 50},
+    {"id": "step", "type": "ability", "name": "影步", "aliases": ["暗影步", "Shadow Step"], "owner_id": "hero", "mechanics": {"range_meters": 10}, "cost": {"resource_id": "spirit", "amount": 30}}
+  ],
+  "policies": [
+    {"id": "retire-step", "target_ids": ["step"], "strength": "hard", "effect": {"allow_use": false, "allow_mention": true}, "scope": {"from_unit_id": "ch2"}, "author_note": "第二章起废弃影步，不再让它解决冲突。"}
+  ],
+  "units": [
+    {"id": "ch1", "title": "门上的记号", "outline": "林澈用一次影步跨过缺口，在门上发现旧记号；不揭示姐姐下落。", "entity_ids": ["hero", "step"]},
+    {"id": "ch2", "title": "楼梯", "outline": "靠观察找到向上的楼梯，不使用影步。", "entity_ids": ["hero"]}
+  ],
+  "uncertainties": []
+}
