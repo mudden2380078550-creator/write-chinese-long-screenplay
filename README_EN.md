@@ -1,240 +1,28 @@
-# Chinese Long-Form Screenwriting Skill v2
+# Narrative Harness 0.4.0
 
-[中文说明](README.md)
+A local, model-independent state and acceptance workflow for long-form Chinese fiction and screenplays. The host AI writes and reviews; the harness persists outlines, entities, author policies, history and accepted prose. Tool source, installed skill and book workspaces remain separate.
 
-![License](https://img.shields.io/github/license/mudden2380078550-creator/write-chinese-long-screenplay)
-![Release](https://img.shields.io/github/v/release/mudden2380078550-creator/write-chinese-long-screenplay)
-![Stars](https://img.shields.io/github/stars/mudden2380078550-creator/write-chinese-long-screenplay)
+Requires Python 3.10+. No third-party runtime dependencies. Run `python scripts/harness.py --help`, or install with `python -m pip install .` and use `harness`.
 
-> **Make AI write 100 scenes without falling apart.** The hardest part of a long Chinese screenplay is not prose but continuity and character voice past scene 80 — this Skill turns that into an executable process: fill two input blocks, the rest is handled internally.
-
-A Chinese feature-film and episodic-screenplay writing skill for mainstream AI agents, including **Codex, Claude Code, DeepSeek Harness (dsh), zcode**, and others. It follows the industry-standard Agent Skills (`SKILL.md`) open convention, so the same skill body loads and runs across agents without per-agent rewrites.
-
-The streamlined version has only two author-facing inputs: background setting and character setting, including biographies. Story architecture, scene causality, continuity, and dialogue checks are handled internally.
-
-## Design foundation (what this is based on)
-
-The skill is built on an explicit combination, which is also why it works across agents:
-
-- **Technical foundation**: the Agent Skills (`SKILL.md`) open convention — `name`/`description` drive routing, while `references/`, `scripts/`, and `assets/` provide structured resources. Codex, Claude Code, dsh, and others natively support the convention, so the skill body needs no per-agent adaptation. All internal scripts use only the **Python standard library**, with no third-party dependencies; any environment running Python 3.10+ can execute the deterministic checks.
-- **Screenwriting method**: the conceptual mapping is informed by Syd Field's feature-screenplay structure, Robert McKee's story and dialogue methods, and Blake Snyder's feature-screenwriting methods. These are compressed into an internal diagnostic framework — you do not need to learn Field, McKee, or Save the Cat terminology first.
-- **Chinese-language calibration**: the de-AI-flavor review borrows the 24 Chinese problem categories publicly listed by [Humanizer-zh](https://github.com/op7418/Humanizer-zh), rephrased as a screenplay review checklist. It does not import that project's rewrite prompts, detector, score, voice templates, or code.
-
-See "Copyright and method sources" at the end for precise attribution.
-
-## Supported agents
-
-| Agent | Skills directory | Notes |
-| --- | --- | --- |
-| Codex | `~/.codex/skills/write-chinese-long-screenplay/` | Native `SKILL.md` support |
-| Claude Code | `~/.claude/skills/write-chinese-long-screenplay/` | Native `SKILL.md` support |
-| DeepSeek Harness (dsh) | `~/.dsh/skills/write-chinese-long-screenplay/` | dsh scans this directory via its skill-filesystem plugin and exposes the skill to the model as an invocable tool |
-| zcode and other Agent Skills agents | Per each tool's documented skills directory | The same `SKILL.md` works as-is |
-
-## Two author-facing blocks
-
-### 1. Background setting
-
-Record the time, place, institutions, historical consequences, world rules, resources, limits, costs, knowledge differences, and fixed facts that change character choices or create visible consequences.
-
-File: `background/story-background.md`
-
-### 2. Character setting
-
-Record each character's biography, objective, need, false belief, defense strategy, resources, limits, secrets, knowledge boundary, relationship exchanges, pressure behavior, speech habits, and final choice.
-
-Files: `bible/characters/*.md`
-
-The feature/series bible, structure map, sequences, scene cards, ledger, and reports remain available as internal working artifacts. They are not additional author-facing theory blocks.
-
-## Chinese AI-style and calibration
-
-The current version treats "removing the AI flavor" as an independent check: it borrows only the 24 Chinese problem categories publicly listed by [Humanizer-zh](https://github.com/op7418/Humanizer-zh), rephrased as a screenplay review checklist. It does not import that project's rewrite prompts, detector, score, voice templates, or code. Automated checks only flag high-confidence signals; detector scores are not a writing target.
-
-The checklist covers four groups and 24 problem types: content inflation and ad-speak, high-frequency AI language and false symmetry, formatting-decoration leakage, and collaborative metadiscourse and hollow conclusions. The review distinguishes action description, dialogue, and formatting so it does not misjudge normal repetition, dashes, quotation marks, or "is" as problems. The full checklist lives in `references/natural-chinese.md`.
-
-The most useful feedback is a rewrite pair, not "make it natural":
+Download [v0.4.0](https://github.com/mudden2380078550-creator/write-chinese-long-screenplay/releases/tag/v0.4.0), or clone the refactor branch explicitly:
 
 ```text
-Original:
-Why it feels unnatural: too complete, too explanatory, wrong for the character, or wrong for the relationship?
-Rewrite:
-Effect to preserve:
+git clone --branch refactor/harness https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git narrative-harness
+cd narrative-harness
 ```
 
-Put 5–20 pairs in the "real Chinese samples" section of `style/screenplay-style.md`. They calibrate the current project but do not permanently train the base model; permanent changes require a separate dataset and fine-tuning process. Use samples for syntax, rhythm, and character distinction, not for copying copyrighted passages.
+The default `main` branch and historical releases retain the old layout. Do not copy the entire new repository into a skills directory; use the installer below. The old root-level dsh plugin layout is not the v0.4.0 entry point.
 
-## Internal writing engine
+The lifecycle is `project new → import stage/apply → unit prepare → submit → check → accept → export`. Natural-language source extraction is performed by the host into a reviewed proposal; the source archive and unresolved sections are retained. The program does not call a model API.
 
-Unified feature engine:
+Author policies are separate from story entities. Required context never silently truncates. Declared ability costs are applied once. Acceptance checks revisions, candidate hashes and review coverage, and commits prose and state using a recoverable journal. Repeated acceptance is idempotent. Old chapters can be revalidated without applying costs again; `revision fork` creates an independent rewrite workspace.
 
-```text
-thematic proposition → protagonist desire → inciting disruption
-→ progressive complications → point of no return → crisis choice
-→ climactic action → ending value and aftermath
-```
+Install the self-contained Codex adapter with `python scripts/install_skill.py --destination <skills>/write-chinese-long-screenplay --backup-root <backups>`. Existing skill files are backed up first. Legacy v2 scripts are retained, while v3 projects use the unified launcher.
 
-Scene engine:
+Then ask the host to use `write-chinese-long-screenplay`, create a project outside the tool directory, and structure your source package into characters, abilities, author policies and an outline. The host fills proposals; unresolved decisions still require review. Back up books before upgrades and use `project migrate --help` for copy-only v2 migration. Internal development 0.3.0 projects retain their old tool/version lock; do not hand-edit locks to bypass compatibility checks. Synchronize each book separately from the tool and avoid concurrent cross-device writers.
 
-```text
-source → viewpoint/objective → conflict/tactic → expected result
-→ actual result → result gap → turn → value change → next pressure
-```
+This release continues GPL-3.0-only; see [LICENSE](LICENSE), [NOTICE.md](NOTICE.md), and [CHANGELOG.md](CHANGELOG.md).
 
-Author theories remain internal diagnostic material. Users do not need to select adapters, fill a fifteen-beat sheet, or place scenes by percentage. The core judgment is always character choice, resistance, cost, and change under setting constraints.
+Semantic review is an explicit host/author attestation, not an automatic guarantee. The lock protects one local host, not distributed writers. Windows verification has been run locally; the included Windows/Linux/macOS CI matrix must execute before claiming cross-platform validation. Legacy migration preserves source files and labels unknown history; legacy state requires review before further drafting.
 
-Chinese pages receive a local de-templating review for exposition, abstract psychology, identical voices, overly polished syntax, and slogan-like endings. Unflagged lines are not rewritten merely to create variation. See `references/natural-chinese.md`.
-
-## Requirements
-
-- An agent environment with `SKILL.md` support (Codex / Claude Code / dsh / zcode, etc.)
-- Python 3.10+
-- Git when installing by clone
-
-The scripts use only the Python standard library.
-
-## Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git
-```
-
-Place the skill directory into your agent's skills directory (`Copy-Item -Recurse` on Windows PowerShell, `cp -r` on macOS/Linux):
-
-| Agent | Example command (macOS / Linux) |
-| --- | --- |
-| Codex | `cp -r write-chinese-long-screenplay ~/.codex/skills/` |
-| Claude Code | `cp -r write-chinese-long-screenplay ~/.claude/skills/` |
-| dsh | `cp -r write-chinese-long-screenplay ~/.dsh/skills/` |
-| zcode, etc. | Per each tool's documented skills directory |
-
-You can also clone directly to the target directory, for example:
-
-```powershell
-git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git `
-  "$HOME\.codex\skills\write-chinese-long-screenplay"
-```
-
-DeepSeek Harness users can install it as a bundle (the package includes a Cordis entry that registers the root `SKILL.md`):
-
-```sh
-dsh plugin --profile web add "github:mudden2380078550-creator/write-chinese-long-screenplay"
-```
-
-Restart `dsh web` after installation; a new session should list `write-chinese-long-screenplay`.
-
-## Initialize a v2 project
-
-```powershell
-python "<skill-dir>\scripts\init_project.py" `
-  --project-root "D:\screenplays\my-feature" `
-  --title "Working Title" `
-  --format feature
-```
-
-After initialization, fill only the background and character blocks. Author-theory adapters remain a compatibility layer and are disabled by default.
-
-Every project declares:
-
-```yaml
-schema_version: 2
-story_engine: causal-value
-structure_adapters: []
-```
-
-## Migrate v1
-
-Preview first:
-
-```powershell
-python "<skill-dir>\scripts\migrate_project.py" `
-  --project-root "<project-root>" `
-  --report "<project-root>\reviews\v2-migration.md"
-```
-
-Apply confirmed structural changes:
-
-```powershell
-python "<skill-dir>\scripts\migrate_project.py" `
-  --project-root "<project-root>" `
-  --apply
-```
-
-Changed files are backed up under the project's `backups/` directory, and the continuity ledger is upgraded to schema v2. The migration does not invent motivation, story values, conflict, or result gaps; unresolved creative fields remain strict-validation blockers.
-
-Exit code `0` means the applied project passes strict validation. Exit code `1` means the report or deterministic migration completed but blockers remain.
-
-## Context and review
-
-| Profile | Default budget |
-| --- | ---: |
-| `scene-light` | about 4,000 tokens |
-| `scene` | about 7,000 tokens |
-| `scene-complex` | about 12,000 tokens |
-| `batch` | about 16,000 tokens |
-| `sequence` | about 4,200 tokens |
-| `dialogue-review` | about 3,200 tokens |
-| `structure-review` | about 6,000 tokens |
-| `full-review` | about 8,000 tokens |
-
-`review` remains an alias for `full-review`.
-
-```powershell
-python "<skill-dir>\scripts\build_context.py" `
-  --project-root "<project-root>" `
-  --scene 18 `
-  --profile scene `
-  --query "character location clue rule" `
-  --source-file "bible/characters/char-id.md" `
-  --output "<temp-dir>\scene-context.md"
-
-python "<skill-dir>\scripts\build_context.py" `
-  --project-root "<project-root>" `
-  --scene-from 18 `
-  --scene-to 23 `
-  --profile batch `
-  --query "batch characters locations clues rules sequence objective" `
-  --output "<temp-dir>\S018-S023-batch-context.md"
-
-python "<skill-dir>\scripts\self_review.py" `
-  --project-root "<project-root>" `
-  --focus dialogue `
-  --strict `
-  --output "<project-root>\reviews\dialogue-review.md"
-```
-
-`--focus` accepts `scene`, `dialogue`, `structure`, `continuity`, or `full`.
-
-Use `scene-light` for transitions and low-context scenes, `scene` as the standard drafting profile, and `scene-complex` for ensemble scenes, major reveals, and climaxes. `batch` builds shared context for 1–8 consecutive scenes only. After each scene, update the ledger and build the next scene's local context. At roughly 30-scene checkpoints, validate first and then review scene causality, dialogue, continuity, and structure in layers instead of loading every completed scene indiscriminately.
-
-Context generation refuses to overwrite an existing output by default. Add `--force` only when intentionally replacing a disposable context package.
-
-## Validate, compile, and test
-
-```powershell
-python "<skill-dir>\scripts\validate_project.py" `
-  --project-root "<project-root>" `
-  --strict
-
-python "<skill-dir>\scripts\compile_screenplay.py" `
-  --project-root "<project-root>" `
-  --output "<project-root>\exports\screenplay.md"
-
-python -m unittest discover -s tests -v
-```
-
-Compilation runs strict validation again and refuses to export a project with schema, source, or required scene-field errors.
-
-Deterministic checks cannot replace editorial judgment about motivation, subtext, emotional effect, or climax quality.
-
-## Copyright and method sources
-
-The conceptual mapping is informed by Syd Field's feature-screenplay methods, Robert McKee's story and dialogue methods, and Blake Snyder's feature-screenwriting methods. The de-AI-flavor review categories reference the public Chinese-language checklist from [Humanizer-zh](https://github.com/op7418/Humanizer-zh). This repository contains original mappings, workflows, templates, and validation code; it does not distribute the books, extended quotations, or chapter summaries that substitute for the source works.
-
-## License
-
-Copyright © 2026 kobayashikayoubi.
-
-Licensed under [GNU General Public License v3.0 only](LICENSE).
+Run `python -B -m unittest discover -s tests -v` and `python -B -m unittest discover -s legacy/tests -v`. See [the Chinese guide](README.md), [protocol examples](integrations/write-chinese-long-screenplay/references/harness-workflow.md), and [provenance notice](NOTICE.md).

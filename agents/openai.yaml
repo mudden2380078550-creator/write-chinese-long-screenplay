@@ -1,4 +1,0 @@
-interface:
-  display_name: "中文长篇写作（小说/剧本）"
-  short_description: "用作者决策门禁创作和审查中文长篇小说、电影与剧集剧本"
-  default_prompt: "使用 $write-chinese-long-screenplay，先识别小说或剧本模式；关键设定先提出有限方案并等待作者锁定唯一正史。"

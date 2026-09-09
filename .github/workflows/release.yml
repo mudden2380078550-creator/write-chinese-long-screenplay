@@ -1,0 +1,58 @@
+name: publish-harness-0.4.0
+
+on:
+  push:
+    branches: [refactor/harness]
+    paths: [docs/releases/v0.4.0.md, .github/workflows/release.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-v0.4.0
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install .
+      - run: python -B -m unittest discover -s tests -v
+      - run: python -B -m unittest discover -s legacy/tests -v
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build wheel
+        run: python -m pip wheel --no-deps --wheel-dir dist .
+      - name: Publish once without changing existing tags or releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if gh release view v0.4.0 >/dev/null 2>&1; then
+            echo 'v0.4.0 already exists; preserving the published release.'
+            exit 0
+          fi
+          gh release create v0.4.0 dist/narrative_harness-0.4.0-py3-none-any.whl \
+            --target "$RELEASE_COMMIT" \
+            --title 'v0.4.0 — 泛长篇创作 Harness' \
+            --notes-file docs/releases/v0.4.0.md \
+            --latest
