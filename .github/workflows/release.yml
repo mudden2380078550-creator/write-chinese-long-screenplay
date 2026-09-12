@@ -1,15 +1,14 @@
-name: publish-harness-0.4.0
+name: release
 
 on:
   push:
-    branches: [refactor/harness]
-    paths: [docs/releases/v0.4.0.md, .github/workflows/release.yml]
+    tags: ['v*']
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-v0.4.0
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -35,24 +34,43 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Require the tag to point at a commit on main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::tag $GITHUB_REF_NAME is not reachable from main"
+            exit 1
+          fi
+      - name: Require the pyproject version to match the tag
+        run: |
+          set -euo pipefail
+          version="$(python -c "import tomllib,pathlib;print(tomllib.loads(pathlib.Path('pyproject.toml').read_text('utf-8'))['project']['version'])")"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::pyproject.toml version is $version but tag is $GITHUB_REF_NAME"
+            exit 1
+          fi
       - name: Build wheel
         run: python -m pip wheel --no-deps --wheel-dir dist .
-      - name: Publish once without changing existing tags or releases
+      - name: Publish the tag's release once
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
-          if gh release view v0.4.0 >/dev/null 2>&1; then
-            echo 'v0.4.0 already exists; preserving the published release.'
+          tag="$GITHUB_REF_NAME"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag already exists; preserving the published release."
             exit 0
           fi
-          gh release create v0.4.0 dist/narrative_harness-0.4.0-py3-none-any.whl \
-            --target "$RELEASE_COMMIT" \
-            --title 'v0.4.0 — 泛长篇创作 Harness' \
-            --notes-file docs/releases/v0.4.0.md \
-            --latest
+          notes="docs/releases/${tag}.md"
+          if [ -f "$notes" ]; then
+            gh release create "$tag" dist/*.whl --title "$tag" --notes-file "$notes" --latest
+          else
+            gh release create "$tag" dist/*.whl --title "$tag" --generate-notes --latest
+          fi

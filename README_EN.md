@@ -4,14 +4,14 @@ A local, model-independent state and acceptance workflow for long-form Chinese f
 
 Requires Python 3.10+. No third-party runtime dependencies. Run `python scripts/harness.py --help`, or install with `python -m pip install .` and use `harness`.
 
-Download [v0.4.0](https://github.com/mudden2380078550-creator/write-chinese-long-screenplay/releases/tag/v0.4.0), or clone the refactor branch explicitly:
+Download [v0.4.0](https://github.com/mudden2380078550-creator/write-chinese-long-screenplay/releases/tag/v0.4.0), or clone `main`, which has carried this layout since v0.4.0:
 
 ```text
-git clone --branch refactor/harness https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git narrative-harness
+git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git narrative-harness
 cd narrative-harness
 ```
 
-The default `main` branch and historical releases retain the old layout. Do not copy the entire new repository into a skills directory; use the installer below. The old root-level dsh plugin layout is not the v0.4.0 entry point.
+The previous layout is retained inside the repository as `legacy/`; historical tags and releases are unchanged. Do not copy the entire new repository into a skills directory; use the installer below. The old root-level dsh plugin layout is not the v0.4.0 entry point.
 
 The lifecycle is `project new → import stage/apply → unit prepare → submit → check → accept → export`. Natural-language source extraction is performed by the host into a reviewed proposal; the source archive and unresolved sections are retained. The program does not call a model API.
 
