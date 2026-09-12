@@ -6,10 +6,10 @@
 
 ## 使用
 
-本次重构位于 [`refactor/harness`](https://github.com/mudden2380078550-creator/write-chinese-long-screenplay/tree/refactor/harness) 分支。旧版 `main` 与历史 Release 保留；下载新版请使用 [v0.4.0 Release](https://github.com/mudden2380078550-creator/write-chinese-long-screenplay/releases/tag/v0.4.0)，或明确克隆本分支：
+本项目自 v0.4.0 起采用本布局，`main` 即当前版本；旧版布局以 `legacy/` 形式保留在仓库内，历史 Release 与 tag 不受影响。下载请使用 [v0.4.0 Release](https://github.com/mudden2380078550-creator/write-chinese-long-screenplay/releases/tag/v0.4.0)，或直接克隆 `main`：
 
 ```text
-git clone --branch refactor/harness https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git narrative-harness
+git clone https://github.com/mudden2380078550-creator/write-chinese-long-screenplay.git narrative-harness
 cd narrative-harness
 ```
 
